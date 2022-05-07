@@ -1,0 +1,57 @@
+syntax = "proto3"; // 声明protobuf的版本
+
+package bettygirl; // 声明了代码所在的包（对于C++来说是namespace）
+
+// message和service都生成class
+// protoc test.proto --cpp_out=./
+
+// 定义下面的选项，表示生成service服务类和rpc方法描述（默认是不生成的）
+option cc_generic_services = true;
+
+message ResultCode {
+    int32 errcode = 1;
+    bytes errmsg = 2;
+}
+
+// 登录消息类型
+message LoginRequest {
+    // 在实践中，一般定义字符串为bytes，减少字节和字符之间的编码转换
+    // 而且它接受的也是字符串，在使用上没有改变
+    bytes name = 1;
+    bytes pwd = 2;
+    // map<int32, string> test = 3;
+}
+
+// 定义登录响应消息类型
+message LoginResponse {
+    ResultCode result = 1;
+    bool success = 2;
+}
+
+// 获取好友列表请求
+message GetFriendListsRequest {
+    uint32 userid = 1;
+}
+
+message User {
+    bytes name = 1;
+    uint32 age = 2;
+    enum Sex {
+        MAN = 0;
+        WOMAN = 1;
+    }
+    Sex sex = 3;
+}
+
+// 获取好友列表响应
+message GetFriendListsResponse {
+    ResultCode result = 1;
+    repeated User friend_list = 2; // 定义了一个列表类型
+}
+
+// 在protobuf里面怎么定义描述rpc方法的类型 - service
+service UserServiceRpc {
+    // 定义RPC方法，这只是对RPC方法的描述。通过这个描述，就可以做RPC请求所携带参数的序列化和反序列化。
+    rpc Login(LoginRequest) returns(LoginResponse);
+    rpc GetFriendList(GetFriendListsRequest) returns(GetFriendListsResponse);
+}

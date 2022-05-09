@@ -2,6 +2,7 @@
 #include <string>
 #include "user.pb.h"
 #include "rpcapplication.h"
+#include "rpcprovider.h"
 
 /*
 UserService原来是一个本地服务，提供了两个进程内的本地方法，Login和GetFriendLists
@@ -50,6 +51,7 @@ int main(int argc, char *argv[])
     // us.Login("xxx", "xxx"); // 现在只能这样调用，其他进程不行。需要设计成RPC方法，支持分布式调用。
 
     // 调用框架的初始化操作(例如：配置、日志初始化)
+    // provider -i config.conf
     RpcApplication::Init(argc, argv);
 
     // 把UserService对象发布到rpc节点上

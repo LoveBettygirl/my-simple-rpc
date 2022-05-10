@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string>
 
+RpcConfig RpcApplication::m_config;
+
 void ShowArgsHelp()
 {
     std::cout << "format: command -i <configfile>" << std::endl;
@@ -16,11 +18,11 @@ void RpcApplication::Init(int argc, char *argv[])
     }
 
     int c = 0;
-    std::string config_file;
+    std::string configFile;
     while ((c = getopt(argc, argv, "i:")) != -1) {
         switch (c) {
             case 'i':
-                config_file = optarg;
+                configFile = optarg;
                 break;
             case '?':
             case ':':
@@ -32,7 +34,7 @@ void RpcApplication::Init(int argc, char *argv[])
     }
 
     // 开始加载配置文件了
-
+    m_config.LoadConfigFile(configFile);
 }
 
 RpcApplication &RpcApplication::GetInstance()

@@ -42,3 +42,8 @@ RpcApplication &RpcApplication::GetInstance()
     static RpcApplication app;
     return app;
 }
+
+RpcConfig &RpcApplication::GetConfig()
+{
+    return m_config;
+}

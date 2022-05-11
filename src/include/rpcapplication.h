@@ -9,6 +9,7 @@ class RpcApplication {
 public:
     static void Init(int argc, char *argv[]);
     static RpcApplication &GetInstance();
+    static RpcConfig &GetConfig();
 private:
     static RpcConfig m_config;
 

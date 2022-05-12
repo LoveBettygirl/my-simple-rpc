@@ -2,11 +2,13 @@
 #define RPCPROVIDER_H
 
 #include <google/protobuf/service.h>
-#include <memory>
+#include <string>
 #include <muduo/net/TcpServer.h>
 #include <muduo/net/EventLoop.h>
 #include <muduo/net/InetAddress.h>
 #include <muduo/net/TcpConnection.h>
+#include <google/protobuf/descriptor.h>
+#include <unordered_map>
 
 using Service = google::protobuf::Service;
 using TcpServer = muduo::net::TcpServer;
@@ -15,6 +17,8 @@ using InetAddress = muduo::net::InetAddress;
 using TcpConnectionPtr = muduo::net::TcpConnectionPtr;
 using Buffer = muduo::net::Buffer;
 using Timestamp = muduo::Timestamp;
+using ServiceDescriptor = google::protobuf::ServiceDescriptor;
+using MethodDescriptor = google::protobuf::MethodDescriptor;
 
 // 框架提供的专门负责发布rpc服务的网络对象类
 // 需要支持高并发（可能有很多人请求rpc调用），因此需要使用muduo库实现
@@ -28,6 +32,15 @@ public:
 private:
     // 组合了EventLoop
     EventLoop m_eventLoop;
+
+    // service服务类型信息
+    struct ServiceInfo {
+        Service *m_service; // 保存服务对象
+        std::unordered_map<std::string, const MethodDescriptor*> m_methodMap; // 保存服务方法
+    };
+
+    // 存储注册成功的服务对象和其服务方法的所有信息
+    std::unordered_map<std::string, ServiceInfo> m_serviceMap;
 
     // 新的socket连接回调
     void OnConnection(const TcpConnectionPtr &);

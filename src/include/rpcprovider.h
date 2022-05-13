@@ -19,6 +19,8 @@ using Buffer = muduo::net::Buffer;
 using Timestamp = muduo::Timestamp;
 using ServiceDescriptor = google::protobuf::ServiceDescriptor;
 using MethodDescriptor = google::protobuf::MethodDescriptor;
+using Message = google::protobuf::Message;
+using Closure = google::protobuf::Closure;
 
 // 框架提供的专门负责发布rpc服务的网络对象类
 // 需要支持高并发（可能有很多人请求rpc调用），因此需要使用muduo库实现
@@ -47,6 +49,9 @@ private:
 
     // 已建立连接用户的读写事件回调
     void OnMessage(const TcpConnectionPtr&, Buffer *, Timestamp);
+
+    // Closure回调操作，用于序列化rpc响应和网络发送
+    void SendRpcResponse(const TcpConnectionPtr&, Message *);
 };
 
 #endif

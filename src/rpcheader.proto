@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package mysimplerpc;
+
+// protoc rpcheader.proto --cpp_out=./
+
+message RpcHeader {
+    bytes serviceName = 1;
+    bytes methodName = 2;
+    uint32 argsSize = 3;
+}

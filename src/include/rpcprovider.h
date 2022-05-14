@@ -8,6 +8,7 @@
 #include <muduo/net/InetAddress.h>
 #include <muduo/net/TcpConnection.h>
 #include <google/protobuf/descriptor.h>
+#include <google/protobuf/message.h>
 #include <unordered_map>
 
 using Service = google::protobuf::Service;

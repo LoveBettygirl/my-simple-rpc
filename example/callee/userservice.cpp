@@ -13,6 +13,8 @@ public:
     bool Login(std::string name, std::string pwd) {
         std::cout << "doing local service: Login" << std::endl;
         std::cout << "name: " << name << " pwd: " << pwd << std::endl;
+        // return false;
+        return true;
     }
 
     // 重写基类UserServiceRpc的虚函数，下面这些方法都是框架直接调用的
@@ -35,6 +37,8 @@ public:
         chatservice::ResultCode *code = response->mutable_result();
         code->set_errcode(0);
         code->set_errmsg("Login success!");
+        // code->set_errcode(1);
+        // code->set_errmsg("Login error!");
         response->set_success(loginresult);
 
         // 执行回调操作

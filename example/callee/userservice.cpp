@@ -10,10 +10,16 @@ UserService原来是一个本地服务，提供了两个进程内的本地方法
 */
 class UserService: public chatservice::UserServiceRpc { // 使用在rpc服务发布端（rpc服务提供者，callee）
 public:
-    bool Login(std::string name, std::string pwd) {
+    bool Login(const std::string &name, const std::string &pwd) {
         std::cout << "doing local service: Login" << std::endl;
         std::cout << "name: " << name << " pwd: " << pwd << std::endl;
         // return false;
+        return true;
+    }
+
+    bool Register(uint32_t id, const std::string &name, const std::string &pwd) {
+        std::cout << "doing local service: Register" << std::endl;
+        std::cout << "id: " << id << " name: " << name << " pwd: " << pwd << std::endl;
         return true;
     }
 
@@ -46,6 +52,27 @@ public:
         // Closure是抽象类，如果想定义回调函数，必须要继承Closure并重写Run
         done->Run();
     }
+
+    void Register(::google::protobuf::RpcController* controller,
+                       const ::chatservice::RegisterRequest* request,
+                       ::chatservice::RegisterResponse* response,
+                       ::google::protobuf::Closure* done) {
+        uint32_t id = request->id();
+        std::string name = request->name();
+        std::string pwd = request->pwd();
+
+        // 做本地业务
+        bool ret = Register(id, name, pwd);
+
+        // 把响应写入response，其序列化由框架负责
+        chatservice::ResultCode *code = response->mutable_result();
+        code->set_errcode(0);
+        code->set_errmsg("Register success!");
+        response->set_success(ret);
+
+        done->Run();
+    }
+
 };
 
 // 该程序的本质是一个服务器
@@ -55,10 +82,10 @@ int main(int argc, char *argv[])
     // us.Login("xxx", "xxx"); // 现在只能这样调用，其他进程不行。需要设计成RPC方法，支持分布式调用。
 
     // 调用框架的初始化操作(例如：配置、日志初始化)
-    // provider -i config.conf
+    // userservice -i test.conf
     RpcApplication::Init(argc, argv);
 
-    // 把UserService对象发布到rpc节点上
+    // 把UserService、FriendService对象发布到rpc节点上
     // privider是一个rpc网络服务对象
     RpcProvider provider;
     provider.NotifyService(new UserService()); // 发布服务

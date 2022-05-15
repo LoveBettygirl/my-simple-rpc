@@ -1,3 +1,4 @@
-set(SRC_LIST userservice.cpp ../user.pb.cc)
-add_executable(provider ${SRC_LIST})
-target_link_libraries(provider mysimplerpc protobuf)
+add_executable(userservice userservice.cpp ../protobuf/user.pb.cc)
+add_executable(friendservice friendservice.cpp ../protobuf/friend.pb.cc)
+target_link_libraries(userservice mysimplerpc protobuf)
+target_link_libraries(friendservice mysimplerpc protobuf)

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package chatservice;
 
+// protoc friend.proto --cpp_out=./
+
 option cc_generic_services = true;
 
 message ResultCode {
@@ -9,17 +11,17 @@ message ResultCode {
     bytes errmsg = 2;
 }
 
-message LoginRequest {
-    bytes name = 1;
-    bytes pwd = 2;
+message GetFriendsListRequest {
+    uint32 userid = 1;
 }
 
-message LoginResponse {
+message GetFriendsListResponse {
     ResultCode result = 1;
-    bool success = 2;
+    repeated bytes friends = 2;
 }
 
-service UserServiceRpc {
+// 好友模块
+service FriendServiceRpc {
     // 注意，这里定义的方法名和本地服务的方法名不一定要一致，但是最好一致
-    rpc Login(LoginRequest) returns(LoginResponse);
+    rpc GetFriendsList(GetFriendsListRequest) returns(GetFriendsListResponse);
 }

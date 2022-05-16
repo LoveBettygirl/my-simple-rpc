@@ -1,9 +1,8 @@
 #include <iostream>
 #include <string>
-#include "friend.pb.h"
-#include "rpcapplication.h"
-#include "rpcprovider.h"
 #include <vector>
+#include <mysimplerpc.h>
+#include "friend.pb.h"
 
 class FriendService: public chatservice::FriendServiceRpc {
 public:

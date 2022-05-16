@@ -4,10 +4,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cerrno>
+#include "rpccontroller.h"
 
 // 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据序列化和网络发送
 void RpcChannel::CallMethod(const MethodDescriptor* method,
-                        RpcController* controller, const Message* request,
+                        google::protobuf::RpcController* controller, const Message* request,
                         Message* response, Closure* done)
 {
     const ServiceDescriptor *sd = method->service();
@@ -21,7 +22,7 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
         argsSize = argsStr.size();
     }
     else {
-        std::cerr << "serialize request error" << std::endl;
+        controller->SetFailed("serialize request error!");
         return;
     }
 
@@ -37,7 +38,7 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
         headerSize = rpcHeaderStr.size();
     }
     else {
-        std::cerr << "serialize rpc header error" << std::endl;
+        controller->SetFailed("serialize rpc header error!");
         return;
     }
 
@@ -60,8 +61,9 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // 使用tcp编程，完成rpc方法远程调用
     int clientfd = socket(AF_INET, SOCK_STREAM, 0);
     if (clientfd == -1) {
-        perror("create socket error");
-        exit(EXIT_FAILURE);
+        controller->SetFailed(std::string("create socket error: ") + strerror(errno));
+        close(clientfd);
+        return;
     }
 
     // 读取配置文件的rpcserver的信息
@@ -75,14 +77,14 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
 
     // 连接rpc服务节点
     if (connect(clientfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        perror("connect error");
+        controller->SetFailed(std::string("connect error: ") + strerror(errno));
         close(clientfd);
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // 发送rpc请求
     if (send(clientfd, sendRpcStr.c_str(), sendRpcStr.size(), 0) == -1) {
-        perror("send error");
+        controller->SetFailed(std::string("send error: ") + strerror(errno));
         close(clientfd);
         return;
     }
@@ -91,7 +93,7 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     char recvBuf[1024] = {0};
     int recvSize = 0;
     if ((recvSize = recv(clientfd, recvBuf, sizeof(recvBuf), 0)) == -1) {
-        perror("recv error");
+        controller->SetFailed(std::string("recv error: ") + strerror(errno));
         close(clientfd);
         return;
     }
@@ -100,7 +102,7 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // std::string responseStr(recvBuf, 0, recvSize); // 出现问题，recvBuf遇到\0，后面的数据就存不下来了，导致反序列化失败
     // if (!response->ParseFromString(responseStr)) {
     if (!response->ParseFromArray(recvBuf, recvSize)) {
-        std::cerr << "parse error! responseStr: " << recvBuf << std::endl;
+        controller->SetFailed(std::string("parse error! response str: ") + recvBuf);
         close(clientfd);
         return;
     }

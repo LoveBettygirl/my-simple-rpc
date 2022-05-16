@@ -2,6 +2,7 @@
 #include <functional>
 #include "rpcapplication.h"
 #include "rpcheader.pb.h"
+#include "rpccontroller.h"
 
 /*
 serviceName -> service描述 -> service*记录服务对象，methodName -> method方法对象
@@ -140,7 +141,8 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     Closure *done = google::protobuf::NewCallback<RpcProvider, const TcpConnectionPtr&, Message*>(this, &RpcProvider::SendRpcResponse, conn, response);
 
     // 在框架上根据远端rpc请求，调用当前rpc节点上发布的方法
-    service->CallMethod(method, nullptr, request, response, done);
+    RpcController controller;
+    service->CallMethod(method, &controller, request, response, done);
 }
 
 // Closure回调操作，用于序列化rpc响应和网络发送

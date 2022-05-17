@@ -6,5 +6,6 @@
 #include "rpcchannel.h"
 #include "rpccontroller.h"
 #include "rpcprovider.h"
+#include "logger.h"
 
 #endif

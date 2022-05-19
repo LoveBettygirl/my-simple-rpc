@@ -3,6 +3,7 @@
 #include "rpcapplication.h"
 #include "rpcheader.pb.h"
 #include "rpccontroller.h"
+#include "logger.h"
 
 /*
 serviceName -> service描述 -> service*记录服务对象，methodName -> method方法对象
@@ -18,7 +19,8 @@ void RpcProvider::NotifyService(Service *service)
     // 获取服务对象service的方法的数量
     int methodCnt = pserviceDesc->method_count();
 
-    std::cout << "serviceName: " << serviceName << std::endl;
+    LOG_DEBUG("In %s:%s:%d: ", __FILE__, __FUNCTION__, __LINE__);
+    LOG_DEBUG("serviceName: %s", serviceName.c_str());
 
     for (int i = 0; i < methodCnt; ++i) {
         // 获取了服务对象指定下标的服务方法的描述（抽象描述）
@@ -26,10 +28,11 @@ void RpcProvider::NotifyService(Service *service)
         std::string methodName = pmethodDesc->name();
         serviceInfo.m_methodMap.insert({methodName, pmethodDesc});
 
-        std::cout << "methodName: " << methodName << std::endl;
+        LOG_DEBUG("methodName: %s", methodName.c_str());
     }
     serviceInfo.m_service = service;
     m_serviceMap.insert({serviceName, serviceInfo});
+    LOG_INFO("In RpcProvider: Notify Service success!");
 }
 
 // 启动rpc服务节点，开始提供rpc远程网络调用服务
@@ -50,6 +53,7 @@ void RpcProvider::Run()
     server.setThreadNum(8);
 
     std::cout << "RpcProvider start service at ip: " << ip << " port: " << port << std::endl;
+    LOG_INFO("RpcProvider start service at ip: %s port: %d", ip.c_str(), port);
 
     // 启动网络服务
     server.start();
@@ -76,6 +80,7 @@ void RpcProvider::OnConnection(const TcpConnectionPtr &conn)
 // 如果远程有一个rpc服务的调用请求，那么OnMessage方法将会响应
 void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp)
 {
+    LOG_INFO("In RpcProvider: get a rpc request!");
     // 网络上接收的远程rpc调用请求的字符流
     std::string recvBuf = buffer->retrieveAllAsString();
 
@@ -96,7 +101,7 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     }
     else {
         // 数据头反序列化失败
-        std::cerr << "rpcHeaderStr: " << rpcHeaderStr << " parse error!" << std::endl;
+        LOG_ERROR("In RpcProvider: rpcHeaderStr: %s parse error!", rpcHeaderStr.c_str());
         return;
     }
 
@@ -104,25 +109,24 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     std::string argsStr = recvBuf.substr(4 + headerSize, argsSize);
 
     // 打印调试信息
-    std::cout << "==================================================" << std::endl;
-    std::cout << "headerSize: " << headerSize << std::endl;
-    std::cout << "rpcHeaderStr: " << rpcHeaderStr << std::endl;
-    std::cout << "serviceName: " << serviceName << std::endl;
-    std::cout << "methodName: " << methodName << std::endl;
-    std::cout << "argsSize: " << argsSize << std::endl;
-    std::cout << "argsStr: " << argsStr << std::endl;
-    std::cout << "==================================================" << std::endl;
+    LOG_DEBUG("In %s:%s:%d: ", __FILE__, __FUNCTION__, __LINE__);
+    LOG_DEBUG("headerSize: %d", headerSize);
+    LOG_DEBUG("rpcHeaderStr: %s", rpcHeaderStr.c_str());
+    LOG_DEBUG("serviceName: %s", serviceName.c_str());
+    LOG_DEBUG("methodName: %s", methodName.c_str());
+    LOG_DEBUG("argsSize: %d", argsSize);
+    LOG_DEBUG("argsStr: %s", argsStr.c_str());
 
     // 获取service对象和method对象
     auto it = m_serviceMap.find(serviceName);
     if (it == m_serviceMap.end()) {
-        std::cerr << serviceName << " is not exist!" << std::endl;
+        LOG_ERROR("In RpcProvider: %s is not exist!", serviceName.c_str());
         return;
     }
 
     auto mit = it->second.m_methodMap.find(methodName);
     if (mit == it->second.m_methodMap.end()) {
-        std::cerr << serviceName << "::" << methodName << " is not exist!" << std::endl;
+        LOG_ERROR("In RpcProvider: %s::%s is not exist!", serviceName.c_str(), methodName.c_str());
         return;
     }
 
@@ -132,7 +136,7 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     // 生成rpc方法调用的请求request和响应response参数
     Message *request = service->GetRequestPrototype(method).New();
     if (!request->ParseFromString(argsStr)) {
-        std::cout << "request parse error! content: " << argsStr << std::endl;
+        LOG_ERROR("In RpcProvider: request parse error! content: %s", argsStr.c_str());
         return;
     }
     Message *response = service->GetResponsePrototype(method).New();
@@ -141,6 +145,7 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     Closure *done = google::protobuf::NewCallback<RpcProvider, const TcpConnectionPtr&, Message*>(this, &RpcProvider::SendRpcResponse, conn, response);
 
     // 在框架上根据远端rpc请求，调用当前rpc节点上发布的方法
+    LOG_INFO("In RpcProvider: rpc request parse success, ready to call local method!");
     RpcController controller;
     service->CallMethod(method, &controller, request, response, done);
 }
@@ -154,7 +159,8 @@ void RpcProvider::SendRpcResponse(const TcpConnectionPtr &conn, Message *respons
         conn->send(responseStr);
     }
     else {
-        std::cerr << "serialize responseStr error!" << std::endl;
+        LOG_ERROR("In RpcProvider: serialize responseStr error!");
     }
+    LOG_INFO("In RpcProvider: rpc response finish!");
     conn->shutdown(); // 模拟http的短连接服务，由RpcProvider主动断开连接，以给其他更多rpc调用方提供服务
 }

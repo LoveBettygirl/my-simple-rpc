@@ -4,6 +4,7 @@
 #include "lockqueue.h"
 #include <string>
 #include <fstream>
+#include <functional>
 
 enum LogLevel {
     DEBUG,
@@ -21,8 +22,13 @@ public:
     
     // 写日志
     void Log(LogLevel level, const std::string &msg);
+
+    void SetEnd() { this->m_running = true; }
 private:
     LockQueue<std::string> m_queue; // 日志缓冲队列
+    bool m_running = true; // 程序是否正在运行，设置false来结束日志线程
+    void WriteLog();
+    void DoLog();
     Logger();
     Logger(const Logger &) = delete;
     Logger(Logger &&) = delete;

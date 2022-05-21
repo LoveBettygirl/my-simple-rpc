@@ -6,6 +6,7 @@
 #include <cerrno>
 #include "rpccontroller.h"
 #include "logger.h"
+#include "zookeeperutil.h"
 
 // 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据序列化和网络发送
 void RpcChannel::CallMethod(const MethodDescriptor* method,
@@ -70,8 +71,27 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     }
 
     // 读取配置文件的rpcserver的信息
-    std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
-    uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
+    // std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
+    // uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
+
+    // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
+    ZkClient zkCli;
+    zkCli.Start();
+    //  /UserServiceRpc/Login
+    std::string methodPath = "/" + serviceName + "/" + methodName;
+    // 127.0.0.1:8000
+    std::string hostData = zkCli.GetData(methodPath.c_str());
+    if (hostData == "") {
+        controller->SetFailed(methodPath + " is not exist!");
+        return;
+    }
+    int idx = hostData.find(":");
+    if (idx == -1) {
+        controller->SetFailed(methodPath + " address is invalid!");
+        return;
+    }
+    std::string ip = hostData.substr(0, idx);
+    uint16_t port = atoi(hostData.substr(idx + 1, hostData.size() - idx).c_str()); 
 
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;

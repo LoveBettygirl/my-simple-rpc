@@ -176,45 +176,45 @@ class RpcHeader :
     kMethodNameFieldNumber = 2,
     kArgsSizeFieldNumber = 3,
   };
-  // bytes serviceName = 1;
-  void clear_servicename();
-  const std::string& servicename() const;
-  void set_servicename(const std::string& value);
-  void set_servicename(std::string&& value);
-  void set_servicename(const char* value);
-  void set_servicename(const void* value, size_t size);
-  std::string* mutable_servicename();
-  std::string* release_servicename();
-  void set_allocated_servicename(std::string* servicename);
+  // bytes service_name = 1;
+  void clear_service_name();
+  const std::string& service_name() const;
+  void set_service_name(const std::string& value);
+  void set_service_name(std::string&& value);
+  void set_service_name(const char* value);
+  void set_service_name(const void* value, size_t size);
+  std::string* mutable_service_name();
+  std::string* release_service_name();
+  void set_allocated_service_name(std::string* service_name);
   private:
-  const std::string& _internal_servicename() const;
-  void _internal_set_servicename(const std::string& value);
-  std::string* _internal_mutable_servicename();
+  const std::string& _internal_service_name() const;
+  void _internal_set_service_name(const std::string& value);
+  std::string* _internal_mutable_service_name();
   public:
 
-  // bytes methodName = 2;
-  void clear_methodname();
-  const std::string& methodname() const;
-  void set_methodname(const std::string& value);
-  void set_methodname(std::string&& value);
-  void set_methodname(const char* value);
-  void set_methodname(const void* value, size_t size);
-  std::string* mutable_methodname();
-  std::string* release_methodname();
-  void set_allocated_methodname(std::string* methodname);
+  // bytes method_name = 2;
+  void clear_method_name();
+  const std::string& method_name() const;
+  void set_method_name(const std::string& value);
+  void set_method_name(std::string&& value);
+  void set_method_name(const char* value);
+  void set_method_name(const void* value, size_t size);
+  std::string* mutable_method_name();
+  std::string* release_method_name();
+  void set_allocated_method_name(std::string* method_name);
   private:
-  const std::string& _internal_methodname() const;
-  void _internal_set_methodname(const std::string& value);
-  std::string* _internal_mutable_methodname();
+  const std::string& _internal_method_name() const;
+  void _internal_set_method_name(const std::string& value);
+  std::string* _internal_mutable_method_name();
   public:
 
-  // uint32 argsSize = 3;
-  void clear_argssize();
-  ::PROTOBUF_NAMESPACE_ID::uint32 argssize() const;
-  void set_argssize(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  // uint32 args_size = 3;
+  void clear_args_size();
+  ::PROTOBUF_NAMESPACE_ID::uint32 args_size() const;
+  void set_args_size(::PROTOBUF_NAMESPACE_ID::uint32 value);
   private:
-  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_argssize() const;
-  void _internal_set_argssize(::PROTOBUF_NAMESPACE_ID::uint32 value);
+  ::PROTOBUF_NAMESPACE_ID::uint32 _internal_args_size() const;
+  void _internal_set_args_size(::PROTOBUF_NAMESPACE_ID::uint32 value);
   public:
 
   // @@protoc_insertion_point(class_scope:mysimplerpc.RpcHeader)
@@ -222,9 +222,9 @@ class RpcHeader :
   class _Internal;
 
   ::PROTOBUF_NAMESPACE_ID::internal::InternalMetadataWithArena _internal_metadata_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr servicename_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr methodname_;
-  ::PROTOBUF_NAMESPACE_ID::uint32 argssize_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr service_name_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr method_name_;
+  ::PROTOBUF_NAMESPACE_ID::uint32 args_size_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_rpcheader_2eproto;
 };
@@ -239,144 +239,144 @@ class RpcHeader :
 #endif  // __GNUC__
 // RpcHeader
 
-// bytes serviceName = 1;
-inline void RpcHeader::clear_servicename() {
-  servicename_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+// bytes service_name = 1;
+inline void RpcHeader::clear_service_name() {
+  service_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
-inline const std::string& RpcHeader::servicename() const {
-  // @@protoc_insertion_point(field_get:mysimplerpc.RpcHeader.serviceName)
-  return _internal_servicename();
+inline const std::string& RpcHeader::service_name() const {
+  // @@protoc_insertion_point(field_get:mysimplerpc.RpcHeader.service_name)
+  return _internal_service_name();
 }
-inline void RpcHeader::set_servicename(const std::string& value) {
-  _internal_set_servicename(value);
-  // @@protoc_insertion_point(field_set:mysimplerpc.RpcHeader.serviceName)
+inline void RpcHeader::set_service_name(const std::string& value) {
+  _internal_set_service_name(value);
+  // @@protoc_insertion_point(field_set:mysimplerpc.RpcHeader.service_name)
 }
-inline std::string* RpcHeader::mutable_servicename() {
-  // @@protoc_insertion_point(field_mutable:mysimplerpc.RpcHeader.serviceName)
-  return _internal_mutable_servicename();
+inline std::string* RpcHeader::mutable_service_name() {
+  // @@protoc_insertion_point(field_mutable:mysimplerpc.RpcHeader.service_name)
+  return _internal_mutable_service_name();
 }
-inline const std::string& RpcHeader::_internal_servicename() const {
-  return servicename_.GetNoArena();
+inline const std::string& RpcHeader::_internal_service_name() const {
+  return service_name_.GetNoArena();
 }
-inline void RpcHeader::_internal_set_servicename(const std::string& value) {
+inline void RpcHeader::_internal_set_service_name(const std::string& value) {
   
-  servicename_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
+  service_name_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
 }
-inline void RpcHeader::set_servicename(std::string&& value) {
+inline void RpcHeader::set_service_name(std::string&& value) {
   
-  servicename_.SetNoArena(
+  service_name_.SetNoArena(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:mysimplerpc.RpcHeader.serviceName)
+  // @@protoc_insertion_point(field_set_rvalue:mysimplerpc.RpcHeader.service_name)
 }
-inline void RpcHeader::set_servicename(const char* value) {
+inline void RpcHeader::set_service_name(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  servicename_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mysimplerpc.RpcHeader.serviceName)
+  service_name_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mysimplerpc.RpcHeader.service_name)
 }
-inline void RpcHeader::set_servicename(const void* value, size_t size) {
+inline void RpcHeader::set_service_name(const void* value, size_t size) {
   
-  servicename_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  service_name_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mysimplerpc.RpcHeader.serviceName)
+  // @@protoc_insertion_point(field_set_pointer:mysimplerpc.RpcHeader.service_name)
 }
-inline std::string* RpcHeader::_internal_mutable_servicename() {
+inline std::string* RpcHeader::_internal_mutable_service_name() {
   
-  return servicename_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  return service_name_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
-inline std::string* RpcHeader::release_servicename() {
-  // @@protoc_insertion_point(field_release:mysimplerpc.RpcHeader.serviceName)
+inline std::string* RpcHeader::release_service_name() {
+  // @@protoc_insertion_point(field_release:mysimplerpc.RpcHeader.service_name)
   
-  return servicename_.ReleaseNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  return service_name_.ReleaseNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
-inline void RpcHeader::set_allocated_servicename(std::string* servicename) {
-  if (servicename != nullptr) {
+inline void RpcHeader::set_allocated_service_name(std::string* service_name) {
+  if (service_name != nullptr) {
     
   } else {
     
   }
-  servicename_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), servicename);
-  // @@protoc_insertion_point(field_set_allocated:mysimplerpc.RpcHeader.serviceName)
+  service_name_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), service_name);
+  // @@protoc_insertion_point(field_set_allocated:mysimplerpc.RpcHeader.service_name)
 }
 
-// bytes methodName = 2;
-inline void RpcHeader::clear_methodname() {
-  methodname_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+// bytes method_name = 2;
+inline void RpcHeader::clear_method_name() {
+  method_name_.ClearToEmptyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
-inline const std::string& RpcHeader::methodname() const {
-  // @@protoc_insertion_point(field_get:mysimplerpc.RpcHeader.methodName)
-  return _internal_methodname();
+inline const std::string& RpcHeader::method_name() const {
+  // @@protoc_insertion_point(field_get:mysimplerpc.RpcHeader.method_name)
+  return _internal_method_name();
 }
-inline void RpcHeader::set_methodname(const std::string& value) {
-  _internal_set_methodname(value);
-  // @@protoc_insertion_point(field_set:mysimplerpc.RpcHeader.methodName)
+inline void RpcHeader::set_method_name(const std::string& value) {
+  _internal_set_method_name(value);
+  // @@protoc_insertion_point(field_set:mysimplerpc.RpcHeader.method_name)
 }
-inline std::string* RpcHeader::mutable_methodname() {
-  // @@protoc_insertion_point(field_mutable:mysimplerpc.RpcHeader.methodName)
-  return _internal_mutable_methodname();
+inline std::string* RpcHeader::mutable_method_name() {
+  // @@protoc_insertion_point(field_mutable:mysimplerpc.RpcHeader.method_name)
+  return _internal_mutable_method_name();
 }
-inline const std::string& RpcHeader::_internal_methodname() const {
-  return methodname_.GetNoArena();
+inline const std::string& RpcHeader::_internal_method_name() const {
+  return method_name_.GetNoArena();
 }
-inline void RpcHeader::_internal_set_methodname(const std::string& value) {
+inline void RpcHeader::_internal_set_method_name(const std::string& value) {
   
-  methodname_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
+  method_name_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), value);
 }
-inline void RpcHeader::set_methodname(std::string&& value) {
+inline void RpcHeader::set_method_name(std::string&& value) {
   
-  methodname_.SetNoArena(
+  method_name_.SetNoArena(
     &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:mysimplerpc.RpcHeader.methodName)
+  // @@protoc_insertion_point(field_set_rvalue:mysimplerpc.RpcHeader.method_name)
 }
-inline void RpcHeader::set_methodname(const char* value) {
+inline void RpcHeader::set_method_name(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
-  methodname_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
-  // @@protoc_insertion_point(field_set_char:mysimplerpc.RpcHeader.methodName)
+  method_name_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  // @@protoc_insertion_point(field_set_char:mysimplerpc.RpcHeader.method_name)
 }
-inline void RpcHeader::set_methodname(const void* value, size_t size) {
+inline void RpcHeader::set_method_name(const void* value, size_t size) {
   
-  methodname_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
+  method_name_.SetNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(),
       ::std::string(reinterpret_cast<const char*>(value), size));
-  // @@protoc_insertion_point(field_set_pointer:mysimplerpc.RpcHeader.methodName)
+  // @@protoc_insertion_point(field_set_pointer:mysimplerpc.RpcHeader.method_name)
 }
-inline std::string* RpcHeader::_internal_mutable_methodname() {
+inline std::string* RpcHeader::_internal_mutable_method_name() {
   
-  return methodname_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  return method_name_.MutableNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
-inline std::string* RpcHeader::release_methodname() {
-  // @@protoc_insertion_point(field_release:mysimplerpc.RpcHeader.methodName)
+inline std::string* RpcHeader::release_method_name() {
+  // @@protoc_insertion_point(field_release:mysimplerpc.RpcHeader.method_name)
   
-  return methodname_.ReleaseNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
+  return method_name_.ReleaseNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
-inline void RpcHeader::set_allocated_methodname(std::string* methodname) {
-  if (methodname != nullptr) {
+inline void RpcHeader::set_allocated_method_name(std::string* method_name) {
+  if (method_name != nullptr) {
     
   } else {
     
   }
-  methodname_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), methodname);
-  // @@protoc_insertion_point(field_set_allocated:mysimplerpc.RpcHeader.methodName)
+  method_name_.SetAllocatedNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), method_name);
+  // @@protoc_insertion_point(field_set_allocated:mysimplerpc.RpcHeader.method_name)
 }
 
-// uint32 argsSize = 3;
-inline void RpcHeader::clear_argssize() {
-  argssize_ = 0u;
+// uint32 args_size = 3;
+inline void RpcHeader::clear_args_size() {
+  args_size_ = 0u;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 RpcHeader::_internal_argssize() const {
-  return argssize_;
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RpcHeader::_internal_args_size() const {
+  return args_size_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::uint32 RpcHeader::argssize() const {
-  // @@protoc_insertion_point(field_get:mysimplerpc.RpcHeader.argsSize)
-  return _internal_argssize();
+inline ::PROTOBUF_NAMESPACE_ID::uint32 RpcHeader::args_size() const {
+  // @@protoc_insertion_point(field_get:mysimplerpc.RpcHeader.args_size)
+  return _internal_args_size();
 }
-inline void RpcHeader::_internal_set_argssize(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+inline void RpcHeader::_internal_set_args_size(::PROTOBUF_NAMESPACE_ID::uint32 value) {
   
-  argssize_ = value;
+  args_size_ = value;
 }
-inline void RpcHeader::set_argssize(::PROTOBUF_NAMESPACE_ID::uint32 value) {
-  _internal_set_argssize(value);
-  // @@protoc_insertion_point(field_set:mysimplerpc.RpcHeader.argsSize)
+inline void RpcHeader::set_args_size(::PROTOBUF_NAMESPACE_ID::uint32 value) {
+  _internal_set_args_size(value);
+  // @@protoc_insertion_point(field_set:mysimplerpc.RpcHeader.args_size)
 }
 
 #ifdef __GNUC__

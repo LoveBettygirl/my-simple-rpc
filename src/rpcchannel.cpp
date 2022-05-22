@@ -31,9 +31,9 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
 
     // 定义rpc的请求header
     mysimplerpc::RpcHeader rpcHeader;
-    rpcHeader.set_servicename(serviceName);
-    rpcHeader.set_methodname(methodName);
-    rpcHeader.set_argssize(argsSize);
+    rpcHeader.set_service_name(serviceName);
+    rpcHeader.set_method_name(methodName);
+    rpcHeader.set_args_size(argsSize);
 
     uint32_t headerSize = 0;
     std::string rpcHeaderStr;
@@ -117,6 +117,11 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     int recvSize = 0;
     if ((recvSize = recv(clientfd, recvBuf, sizeof(recvBuf), 0)) == -1) {
         controller->SetFailed(std::string("In RpcChannel: recv error: ") + strerror(errno));
+        close(clientfd);
+        return;
+    }
+    else if (recvSize == 0) {
+        controller->SetFailed("In RpcChannel: recv error: rpc request content error!");
         close(clientfd);
         return;
     }

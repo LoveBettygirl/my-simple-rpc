@@ -1,6 +1,7 @@
 #include <iostream>
 #include <mysimplerpc.h>
 #include "friend.pb.h"
+using namespace std;
 
 void CallFriendService()
 {
@@ -18,18 +19,18 @@ void CallFriendService()
 
     // 一次rpc调用完成，读调用的结果
     if (controller.Failed()) {
-        std::cerr << controller.ErrorText() << std::endl;
+        cerr << controller.ErrorText() << endl;
     }
     else {
         if (response.result().errcode() == 0) {
-            std::cout << "rpc GetFriendsList response success!" << std::endl;
+            cout << "rpc GetFriendsList response success!" << endl;
             int size = response.friends_size();
             for (int i = 0; i < size; ++i) {
-                std::cout << "index: " << (i + 1) << " name: " << response.friends(i) << std::endl;
+                cout << "index: " << (i + 1) << " name: " << response.friends(i) << endl;
             }
         }
         else {
-            std::cerr << "rpc GetFriendsList response error: " << response.result().errmsg() << std::endl;
+            cerr << "rpc GetFriendsList response error: " << response.result().errmsg() << endl;
         }
     }
 }

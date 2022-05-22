@@ -3,12 +3,13 @@
 #include <vector>
 #include <mysimplerpc.h>
 #include "friend.pb.h"
+using namespace std;
 
 class FriendService: public chatservice::FriendServiceRpc {
 public:
-    std::vector<std::string> GetFriendsList(uint32_t userid) {
-        std::cout << "do GetFriendsList service! userid: " << userid << std::endl;
-        std::vector<std::string> vec;
+    vector<string> GetFriendsList(uint32_t userid) {
+        cout << "do GetFriendsList service! userid: " << userid << endl;
+        vector<string> vec;
         vec.push_back("gao yang");
         vec.push_back("liu hong");
         vec.push_back("wang shuo");
@@ -21,13 +22,13 @@ public:
                        ::chatservice::GetFriendsListResponse* response,
                        ::google::protobuf::Closure* done) {
         uint32_t userid = request->userid();
-        std::vector<std::string> friendsList = GetFriendsList(userid);
+        vector<string> friendsList = GetFriendsList(userid);
 
         chatservice::ResultCode *code = response->mutable_result();
         code->set_errcode(0);
         code->set_errmsg("GetFriendsList success!");
-        for (const std::string &name : friendsList) {
-            std::string *p = response->add_friends();
+        for (const string &name : friendsList) {
+            string *p = response->add_friends();
             *p = name;
         }
         done->Run();

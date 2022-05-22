@@ -2,6 +2,7 @@
 #include <string>
 #include <mysimplerpc.h>
 #include "user.pb.h"
+using namespace std;
 
 /*
 UserService原来是一个本地服务，提供了两个进程内的本地方法，Login和GetFriendLists
@@ -9,16 +10,16 @@ UserService原来是一个本地服务，提供了两个进程内的本地方法
 */
 class UserService: public chatservice::UserServiceRpc { // 使用在rpc服务发布端（rpc服务提供者，callee）
 public:
-    bool Login(const std::string &name, const std::string &pwd) {
-        std::cout << "doing local service: Login" << std::endl;
-        std::cout << "name: " << name << " pwd: " << pwd << std::endl;
+    bool Login(const string &name, const string &pwd) {
+        cout << "doing local service: Login" << endl;
+        cout << "name: " << name << " pwd: " << pwd << endl;
         // return false;
         return true;
     }
 
-    bool Register(uint32_t id, const std::string &name, const std::string &pwd) {
-        std::cout << "doing local service: Register" << std::endl;
-        std::cout << "id: " << id << " name: " << name << " pwd: " << pwd << std::endl;
+    bool Register(uint32_t id, const string &name, const string &pwd) {
+        cout << "doing local service: Register" << endl;
+        cout << "id: " << id << " name: " << name << " pwd: " << pwd << endl;
         return true;
     }
 
@@ -32,8 +33,8 @@ public:
                        ::google::protobuf::Closure* done) {
         // 框架已经将request反序列化好了
         // 框架给业务上报了请求参数LoginRequest，应用获取相应数据做本地业务
-        std::string name = request->name();
-        std::string pwd = request->pwd();
+        string name = request->name();
+        string pwd = request->pwd();
 
         // 做本地业务
         bool loginresult = Login(name, pwd);
@@ -57,8 +58,8 @@ public:
                        ::chatservice::RegisterResponse* response,
                        ::google::protobuf::Closure* done) {
         uint32_t id = request->id();
-        std::string name = request->name();
-        std::string pwd = request->pwd();
+        string name = request->name();
+        string pwd = request->pwd();
 
         // 做本地业务
         bool ret = Register(id, name, pwd);

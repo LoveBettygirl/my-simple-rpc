@@ -116,13 +116,14 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     uint32_t argsSize;
     if (rpcHeader.ParseFromString(rpcHeaderStr)) {
         // 数据头反序列化成功
-        serviceName = rpcHeader.servicename();
-        methodName = rpcHeader.methodname();
-        argsSize = rpcHeader.argssize();
+        serviceName = rpcHeader.service_name();
+        methodName = rpcHeader.method_name();
+        argsSize = rpcHeader.args_size();
     }
     else {
         // 数据头反序列化失败
         LOG_ERROR("In RpcProvider: rpcHeaderStr: %s parse error!", rpcHeaderStr.c_str());
+        conn->shutdown();
         return;
     }
 
@@ -142,12 +143,14 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     auto it = m_serviceMap.find(serviceName);
     if (it == m_serviceMap.end()) {
         LOG_ERROR("In RpcProvider: %s is not exist!", serviceName.c_str());
+        conn->shutdown();
         return;
     }
 
     auto mit = it->second.m_methodMap.find(methodName);
     if (mit == it->second.m_methodMap.end()) {
         LOG_ERROR("In RpcProvider: %s::%s is not exist!", serviceName.c_str(), methodName.c_str());
+        conn->shutdown();
         return;
     }
 
@@ -158,6 +161,7 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     Message *request = service->GetRequestPrototype(method).New();
     if (!request->ParseFromString(argsStr)) {
         LOG_ERROR("In RpcProvider: request parse error! content: %s", argsStr.c_str());
+        conn->shutdown();
         return;
     }
     Message *response = service->GetResponsePrototype(method).New();

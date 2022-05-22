@@ -1,6 +1,7 @@
 #include <iostream>
 #include <mysimplerpc.h>
 #include "user.pb.h"
+using namespace std;
 
 void CallUserService()
 {
@@ -19,14 +20,14 @@ void CallUserService()
 
     // 一次rpc调用完成，读调用的结果
     if (controller.Failed()) {
-        std::cerr << controller.ErrorText() << std::endl;
+        cerr << controller.ErrorText() << endl;
     }
     else {
         if (response.result().errcode() == 0) {
-            std::cout << "rpc login response success: " << response.success() << std::endl;
+            cout << "rpc login response success: " << response.success() << endl;
         }
         else {
-            std::cerr << "rpc login response error: " << response.result().errmsg() << std::endl;
+            cerr << "rpc login response error: " << response.result().errmsg() << endl;
         }
     }
 
@@ -42,14 +43,14 @@ void CallUserService()
 
     // 一次rpc调用完成，读调用的结果
     if (controller.Failed()) {
-        std::cerr << controller.ErrorText() << std::endl;
+        cerr << controller.ErrorText() << endl;
     }
     else {
         if (rsp.result().errcode() == 0) {
-            std::cout << "rpc register response success: " << rsp.success() << std::endl;
+            cout << "rpc register response success: " << rsp.success() << endl;
         }
         else {
-            std::cerr << "rpc register response error: " << rsp.result().errmsg() << std::endl;
+            cerr << "rpc register response error: " << rsp.result().errmsg() << endl;
         }
     }
 }

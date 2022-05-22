@@ -5,7 +5,7 @@ package mysimplerpc;
 // protoc rpcheader.proto --cpp_out=./
 
 message RpcHeader {
-    bytes serviceName = 1;
-    bytes methodName = 2;
-    uint32 argsSize = 3;
+    bytes service_name = 1;
+    bytes method_name = 2;
+    uint32 args_size = 3;
 }

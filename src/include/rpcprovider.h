@@ -10,6 +10,9 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
 #include <unordered_map>
+#include <unordered_set>
+#include "zookeeperutil.h"
+#include "noncopyable.h"
 
 using Service = google::protobuf::Service;
 using TcpServer = muduo::net::TcpServer;
@@ -25,16 +28,23 @@ using Closure = google::protobuf::Closure;
 
 // 框架提供的专门负责发布rpc服务的网络对象类
 // 需要支持高并发（可能有很多人请求rpc调用），因此需要使用muduo库实现
-class RpcProvider {
+class RpcProvider : private Noncopyable {
 public:
     // 这里是框架提供给外部使用的，可以发布rpc方法的函数接口
     void NotifyService(Service *service);
 
     // 启动rpc服务节点，开始提供rpc远程网络调用服务
     void Run();
+
+    static RpcProvider *GetInstance();
 private:
+    RpcProvider(EventLoop *loop, const InetAddress &addr, const std::string& name);
+
     // 组合了EventLoop
-    EventLoop m_eventLoop;
+    EventLoop *m_eventLoop;
+
+    // 创建TcpServer对象
+    TcpServer m_server;
 
     // service服务类型信息
     struct ServiceInfo {
@@ -45,6 +55,10 @@ private:
     // 存储注册成功的服务对象和其服务方法的所有信息
     std::unordered_map<std::string, ServiceInfo> m_serviceMap;
 
+    std::unordered_set<std::string> m_pathSet;
+
+    ZkClient m_zkCli;
+
     // 新的socket连接回调
     void OnConnection(const TcpConnectionPtr &);
 
@@ -53,6 +67,9 @@ private:
 
     // Closure回调操作，用于序列化rpc响应和网络发送
     void SendRpcResponse(const TcpConnectionPtr&, Message *);
+
+    // 删除注册的znode节点
+    void Clear();
 };
 
 #endif

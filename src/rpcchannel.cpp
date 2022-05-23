@@ -77,14 +77,16 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
     ZkClient zkCli;
     zkCli.Start();
-    //  /UserServiceRpc/Login
-    std::string methodPath = "/" + serviceName + "/" + methodName;
+    // /my-simple-rpc//UserServiceRpc/Login
+    std::string methodPath = ROOT_PATH;
+    methodPath += "/" + serviceName + "/" + methodName;
     // 127.0.0.1:8000
-    std::string hostData = zkCli.GetData(methodPath.c_str());
-    if (hostData == "") {
+    std::vector<std::string> nodes = zkCli.GetNodes(methodPath);
+    if (nodes.empty()) {
         controller->SetFailed(methodPath + " is not exist!");
         return;
     }
+    std::string hostData = nodes[0]; // 负载均衡器的选择
     int idx = hostData.find(":");
     if (idx == -1) {
         controller->SetFailed(methodPath + " address is invalid!");

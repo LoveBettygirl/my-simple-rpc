@@ -4,7 +4,34 @@
 #include "rpcheader.pb.h"
 #include "rpccontroller.h"
 #include "logger.h"
-#include "zookeeperutil.h"
+
+RpcProvider *RpcProvider::GetInstance()
+{
+    static EventLoop loop;
+    static InetAddress addr(RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip"), 
+        std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port")));
+    static RpcProvider rpcProvider(&loop, addr, "RpcProvider");
+    return &rpcProvider;
+}
+
+RpcProvider::RpcProvider(EventLoop *loop, const InetAddress &addr, const std::string& name)
+    : m_eventLoop(loop), m_server(loop, addr, name)
+{
+    // 绑定连接回调和消息读写回调方法，分离了网络代码和业务代码
+    m_server.setConnectionCallback(std::bind(&RpcProvider::OnConnection, this, std::placeholders::_1));
+    m_server.setMessageCallback(std::bind(&RpcProvider::OnMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+    // 设置muduo库的线程数量
+    m_server.setThreadNum(8);
+
+    // 启动zkclient客户端
+    m_zkCli.Start();
+    // 加入根节点
+    m_zkCli.Create(ROOT_PATH, nullptr, 0);
+
+    // TODO: zk心跳机制
+    // TODO: SIGINT信号注册
+}
 
 /*
 serviceName -> service描述 -> service*记录服务对象，methodName -> method方法对象
@@ -23,6 +50,13 @@ void RpcProvider::NotifyService(Service *service)
     LOG_DEBUG("In %s:%s:%d: ", __FILE__, __FUNCTION__, __LINE__);
     LOG_DEBUG("serviceName: %s", serviceName.c_str());
 
+    std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
+    uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
+
+    // znode路径：/my-simple-rpc/UserServiceRpc/Login/127.0.0.1:8000
+    std::string servicePath = ROOT_PATH;
+    servicePath += "/" + serviceName;
+    m_zkCli.Create(servicePath.c_str(), nullptr, 0);
     for (int i = 0; i < methodCnt; ++i) {
         // 获取了服务对象指定下标的服务方法的描述（抽象描述）
         const MethodDescriptor *pmethodDesc = pserviceDesc->method(i);
@@ -30,9 +64,20 @@ void RpcProvider::NotifyService(Service *service)
         serviceInfo.m_methodMap.insert({methodName, pmethodDesc});
 
         LOG_DEBUG("methodName: %s", methodName.c_str());
+
+        // 加入znode子节点
+        std::string methodPath = servicePath + "/" + methodName;
+        m_zkCli.Create(methodPath.c_str(), nullptr, 0);
+        char address[128] = {0};
+        sprintf(address, "%s:%d", ip.c_str(), port);
+        methodPath += "/";
+        methodPath += address;
+        m_zkCli.Create(methodPath.c_str(), nullptr, 0, ZOO_EPHEMERAL);
+        m_pathSet.insert(methodPath);
     }
     serviceInfo.m_service = service;
     m_serviceMap.insert({serviceName, serviceInfo});
+
     LOG_INFO("In RpcProvider: Notify Service success!");
 }
 
@@ -41,44 +86,14 @@ void RpcProvider::Run()
 {
     std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
     uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
-    InetAddress address(ip, port);
-
-    // 创建TcpServer对象
-    TcpServer server(&m_eventLoop, address, "RpcProvider");
-
-    // 绑定连接回调和消息读写回调方法，分离了网络代码和业务代码
-    server.setConnectionCallback(std::bind(&RpcProvider::OnConnection, this, std::placeholders::_1));
-    server.setMessageCallback(std::bind(&RpcProvider::OnMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-
-    // 设置muduo库的线程数量
-    server.setThreadNum(8);
-
-    // 把当前rpc节点上要发布的服务全部注册到zk上面，让rpc client可以从zk上发现服务
-    // session timeout   30s     zkclient 网络I/O线程  1/3 * timeout 时间发送ping消息
-    ZkClient zkCli;
-    zkCli.Start();
-    // service_name为永久性节点    method_name为临时性节点
-    for (auto &sp : m_serviceMap) {
-        // /service_name   /UserServiceRpc
-        std::string servicePath = "/" + sp.first;
-        zkCli.Create(servicePath.c_str(), nullptr, 0);
-        for (auto &mp : sp.second.m_methodMap) {
-            // /service_name/method_name   /UserServiceRpc/Login 存储当前这个rpc服务节点主机的ip和port
-            std::string methodPath = servicePath + "/" + mp.first;
-            char methodPathData[128] = {0};
-            sprintf(methodPathData, "%s:%d", ip.c_str(), port);
-            // ZOO_EPHEMERAL表示znode是一个临时性节点
-            zkCli.Create(methodPath.c_str(), methodPathData, strlen(methodPathData), ZOO_EPHEMERAL);
-        }
-    }
-
+    
     // rpc服务端准备启动，打印信息
     std::cout << "RpcProvider start service at ip: " << ip << " port: " << port << std::endl;
     LOG_INFO("RpcProvider start service at ip: %s port: %d", ip.c_str(), port);
 
     // 启动网络服务
-    server.start();
-    m_eventLoop.loop();
+    m_server.start();
+    m_eventLoop->loop();
 }
 
 // 新的socket连接回调
@@ -188,4 +203,10 @@ void RpcProvider::SendRpcResponse(const TcpConnectionPtr &conn, Message *respons
     }
     LOG_INFO("In RpcProvider: rpc response finish!");
     conn->shutdown(); // 模拟http的短连接服务，由RpcProvider主动断开连接，以给其他更多rpc调用方提供服务
+}
+
+// 删除注册的znode节点
+void RpcProvider::Clear()
+{
+    m_zkCli.Stop();
 }

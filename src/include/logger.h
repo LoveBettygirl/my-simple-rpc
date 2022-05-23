@@ -2,6 +2,7 @@
 #define LOGGER_H
 
 #include "lockqueue.h"
+#include "noncopyable.h"
 #include <string>
 #include <fstream>
 #include <functional>
@@ -15,7 +16,7 @@ enum LogLevel {
 };
 
 // 框架提供的日志系统
-class Logger {
+class Logger : private Noncopyable {
 public:
     // 获取日志的单例
     static Logger &GetInstance();
@@ -30,8 +31,6 @@ private:
     void WriteLog();
     void DoLog();
     Logger();
-    Logger(const Logger &) = delete;
-    Logger(Logger &&) = delete;
 };
 
 // 定义日志宏

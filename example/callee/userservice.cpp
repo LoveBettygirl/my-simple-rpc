@@ -87,13 +87,13 @@ int main(int argc, char *argv[])
 
     // 把UserService、FriendService对象发布到rpc节点上
     // privider是一个rpc网络服务对象
-    RpcProvider provider;
-    provider.NotifyService(new UserService()); // 发布服务
+    RpcProvider *provider = RpcProvider::GetInstance();
+    provider->NotifyService(new UserService()); // 发布服务
     // provider.NotifyService(new xxxService()); // 假如想发布多个服务
 
     // 启动一个rpc服务发布节点
     // Run之后，进程进入阻塞状态，等待远程的rpc调用请求
-    provider.Run();
+    provider->Run();
 
     return 0;
 }

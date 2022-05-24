@@ -11,7 +11,7 @@ static const char *ROOT_PATH = "/my-simple-rpc";
 class RpcApplication : private Noncopyable {
 public:
     static void Init(int argc, char *argv[]);
-    static RpcApplication &GetInstance();
+    static RpcApplication *GetInstance();
     static RpcConfig &GetConfig();
 private:
     static RpcConfig m_config;

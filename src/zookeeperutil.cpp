@@ -23,8 +23,8 @@ ZkClient::~ZkClient()
 // zkclient启动连接zkserver
 void ZkClient::Start()
 {
-    std::string host = RpcApplication::GetInstance().GetConfig().Load("zookeeper_ip");
-    std::string port = RpcApplication::GetInstance().GetConfig().Load("zookeeper_port");
+    std::string host = RpcApplication::GetInstance()->GetConfig().Load("zookeeper_ip");
+    std::string port = RpcApplication::GetInstance()->GetConfig().Load("zookeeper_port");
     std::string connstr = host + ":" + port;
 
     /*

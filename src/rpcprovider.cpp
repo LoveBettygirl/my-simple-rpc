@@ -8,8 +8,8 @@
 RpcProvider *RpcProvider::GetInstance()
 {
     static EventLoop loop;
-    static InetAddress addr(RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip"), 
-        std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port")));
+    static InetAddress addr(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip"), 
+        std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port")));
     static RpcProvider rpcProvider(&loop, addr, "RpcProvider");
     return &rpcProvider;
 }
@@ -50,8 +50,8 @@ void RpcProvider::NotifyService(Service *service)
     LOG_DEBUG("In %s:%s:%d: ", __FILE__, __FUNCTION__, __LINE__);
     LOG_DEBUG("serviceName: %s", serviceName.c_str());
 
-    std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
-    uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
+    std::string ip = RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip");
+    uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
 
     // znode路径：/my-simple-rpc/UserServiceRpc/Login/127.0.0.1:8000
     std::string servicePath = ROOT_PATH;
@@ -84,8 +84,8 @@ void RpcProvider::NotifyService(Service *service)
 // 启动rpc服务节点，开始提供rpc远程网络调用服务
 void RpcProvider::Run()
 {
-    std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
-    uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
+    std::string ip = RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip");
+    uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
     
     // rpc服务端准备启动，打印信息
     std::cout << "RpcProvider start service at ip: " << ip << " port: " << port << std::endl;

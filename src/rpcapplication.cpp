@@ -37,10 +37,10 @@ void RpcApplication::Init(int argc, char *argv[])
     m_config.LoadConfigFile(configFile);
 }
 
-RpcApplication &RpcApplication::GetInstance()
+RpcApplication *RpcApplication::GetInstance()
 {
     static RpcApplication app;
-    return app;
+    return &app;
 }
 
 RpcConfig &RpcApplication::GetConfig()

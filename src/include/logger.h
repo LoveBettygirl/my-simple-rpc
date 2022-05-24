@@ -19,7 +19,7 @@ enum LogLevel {
 class Logger : private Noncopyable {
 public:
     // 获取日志的单例
-    static Logger &GetInstance();
+    static Logger *GetInstance();
     
     // 写日志
     void Log(LogLevel level, const std::string &msg);
@@ -36,42 +36,42 @@ private:
 // 定义日志宏
 #define LOG_DEBUG(logmsgformat, ...) \
     do { \
-        Logger &logger = Logger::GetInstance(); \
+        Logger *logger = Logger::GetInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger.Log(DEBUG, buf); \
+        logger->Log(DEBUG, buf); \
     } while (0);
 
 #define LOG_INFO(logmsgformat, ...) \
     do { \
-        Logger &logger = Logger::GetInstance(); \
+        Logger *logger = Logger::GetInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger.Log(INFO, buf); \
+        logger->Log(INFO, buf); \
     } while (0);
 
 #define LOG_WARN(logmsgformat, ...) \
     do { \
-        Logger &logger = Logger::GetInstance(); \
+        Logger *logger = Logger::GetInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger.Log(WARN, buf); \
+        logger->Log(WARN, buf); \
     } while (0);
 
 #define LOG_ERROR(logmsgformat, ...) \
     do { \
-        Logger &logger = Logger::GetInstance(); \
+        Logger *logger = Logger::GetInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger.Log(ERROR, buf); \
+        logger->Log(ERROR, buf); \
     } while (0);
 
 #define LOG_FATAL(logmsgformat, ...) \
     do { \
-        Logger &logger = Logger::GetInstance(); \
+        Logger *logger = Logger::GetInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger.Log(FATAL, buf); \
+        logger->Log(FATAL, buf); \
     } while (0);
 
 #endif

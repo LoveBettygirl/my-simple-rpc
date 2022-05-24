@@ -71,8 +71,8 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     }
 
     // 读取配置文件的rpcserver的信息
-    // std::string ip = RpcApplication::GetInstance().GetConfig().Load("rpcserver_ip");
-    // uint16_t port = std::stoi(RpcApplication::GetInstance().GetConfig().Load("rpcserver_port"));
+    // std::string ip = RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip");
+    // uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
 
     // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
     ZkClient zkCli;
@@ -141,5 +141,5 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     close(clientfd);
 
     // 关闭日志线程，以防客户端无法退出
-    Logger::GetInstance().SetEnd();
+    Logger::GetInstance()->SetEnd();
 }

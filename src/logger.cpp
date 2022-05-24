@@ -3,10 +3,10 @@
 #include <sys/stat.h>
 
 // 获取日志的单例
-Logger &Logger::GetInstance()
+Logger *Logger::GetInstance()
 {
     static Logger logger;
-    return logger;
+    return &logger;
 }
 
 Logger::Logger()

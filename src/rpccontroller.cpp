@@ -23,8 +23,6 @@ void RpcController::SetFailed(const std::string &reason)
 {
     m_failed = true;
     m_errText = reason;
-    LOG_ERROR("%s", m_errText.c_str());
-    Logger::GetInstance()->SetEnd();
 }
 
 // 目前未实现具体的功能

@@ -24,10 +24,12 @@ public:
     // 写日志
     void Log(LogLevel level, const std::string &msg);
 
-    void SetEnd() { this->m_running = true; }
+    void Start();
+
+    void Stop() { this->m_running = true; }
 private:
     LockQueue<std::string> m_queue; // 日志缓冲队列
-    bool m_running = true; // 程序是否正在运行，设置false来结束日志线程
+    bool m_running; // 程序是否正在运行，设置false来结束日志线程
     void WriteLog();
     void DoLog();
     Logger();

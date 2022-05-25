@@ -4,6 +4,22 @@
 #include "rpcheader.pb.h"
 #include "rpccontroller.h"
 #include "logger.h"
+#include <signal.h>
+
+void addsig(int sig, void (*handler)(int))
+{
+    struct sigaction sa; // 这里必须加struct，要不然和函数名字冲突了
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handler;
+    sigfillset(&sa.sa_mask);
+    sigaction(sig, &sa, nullptr);
+}
+
+void RpcProvider::SigHandler(int sig)
+{
+    RpcProvider::GetInstance()->Clear();
+    exit(EXIT_SUCCESS);
+}
 
 RpcProvider *RpcProvider::GetInstance()
 {
@@ -30,7 +46,14 @@ RpcProvider::RpcProvider(EventLoop *loop, const InetAddress &addr, const std::st
     m_zkCli.Create(ROOT_PATH, nullptr, 0);
 
     // TODO: zk心跳机制
-    // TODO: SIGINT信号注册
+
+    // SIGINT信号注册
+    addsig(SIGINT, SigHandler);
+}
+
+RpcProvider::~RpcProvider()
+{
+    Clear();
 }
 
 /*
@@ -205,8 +228,33 @@ void RpcProvider::SendRpcResponse(const TcpConnectionPtr &conn, Message *respons
     conn->shutdown(); // 模拟http的短连接服务，由RpcProvider主动断开连接，以给其他更多rpc调用方提供服务
 }
 
-// 删除注册的znode节点
+// 删除注册的znode节点，断开与zkserver连接
 void RpcProvider::Clear()
 {
+    if (!m_zkCli.GetIsConnected()) {
+        return;
+    }
+    // 先删除自己注册的节点
+    for (const std::string &path : m_pathSet) {
+        m_zkCli.Delete(path.c_str());
+    }
+    // 也要删除节点上层表示服务和方法的节点，以及根节点（如果它们已经没有子节点了）
+    for (auto &sp : m_serviceMap) {
+        std::string servicePath = ROOT_PATH;
+        servicePath += "/" + sp.first;
+        for (auto &mp : sp.second.m_methodMap) {
+            std::string methodPath = servicePath + "/" + mp.first;
+            if (m_zkCli.GetChildrenNodes(methodPath).empty()) {
+                m_zkCli.Delete(methodPath.c_str());
+            }
+        }
+        if (m_zkCli.GetChildrenNodes(servicePath).empty()) {
+            m_zkCli.Delete(servicePath.c_str());
+        }
+    }
+    if (m_zkCli.GetChildrenNodes(ROOT_PATH).empty()) {
+        m_zkCli.Delete(ROOT_PATH);
+    }
+    // 断开与zkserver的连接
     m_zkCli.Stop();
 }

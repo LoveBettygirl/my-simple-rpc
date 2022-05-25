@@ -50,11 +50,13 @@ void ZkClient::Start()
     LOG_INFO("zookeeper_init success!");
 }
 
+// 断开zkclient与zkserver的连接
 void ZkClient::Stop()
 {
     if (m_zhandle != nullptr) {
         zookeeper_close(m_zhandle); // 关闭句柄，释放资源  MySQL_Conn
         m_zhandle = nullptr;
+        LOG_INFO("zookeeper connection close success!");
     }
 }
 
@@ -82,6 +84,24 @@ void ZkClient::Create(const char *path, const char *data, int datalen, int state
     }
 }
 
+// 删除节点
+void ZkClient::Delete(const char *path)
+{
+    int flag;
+    // 先判断path表示的znode节点是否存在，如果不存在，就不再重复删除
+    flag = zoo_exists(m_zhandle, path, 0, nullptr); // 同步的判断
+    if (ZNONODE != flag) { // 表示path的znode节点不存在
+        flag = zoo_delete(m_zhandle, path, -1); // 也是同步的
+        if (flag == ZOK) {
+            LOG_INFO("znode delete success... path: %s", path);
+        }
+        else {
+            LOG_ERROR("flag: %d", flag);
+            LOG_ERROR("znode delete error... path: %s", path);
+        }
+    }
+}
+
 // 根据指定的path，获取znode节点的值
 std::string ZkClient::GetData(const char *path)
 {
@@ -96,13 +116,13 @@ std::string ZkClient::GetData(const char *path)
     return buffer;
 }
 
-std::vector<std::string> ZkClient::GetNodes(const std::string &path)
+std::vector<std::string> ZkClient::GetChildrenNodes(const std::string &path)
 {
-    auto it = m_serviceNodesMap.find(path);
-    if (m_serviceNodesMap.find(path) != m_serviceNodesMap.end())
+    auto it = m_childrenNodesMap.find(path);
+    if (m_childrenNodesMap.find(path) != m_childrenNodesMap.end())
         return it->second;
     std::vector<std::string> result = GetChildren(path.c_str());
-    m_serviceNodesMap[path] = result;
+    m_childrenNodesMap[path] = result;
     return result;
 }
 
@@ -111,14 +131,16 @@ std::vector<std::string> ZkClient::GetChildren(const char *path)
     struct String_vector node_vec;
     int flag = zoo_wget_children(m_zhandle, path, ServiceWatcher, nullptr, &node_vec);
     zoo_set_context(m_zhandle, this);
+    std::vector<std::string> result;
     if (flag != ZOK) {
         LOG_ERROR("get znode children error... path: %s", path);
-        return std::vector<std::string>();
     }
-    int size = node_vec.count;
-    std::vector<std::string> result;
-    for (int i = 0; i < size; ++i) {
-        result.push_back(node_vec.data[i]);
+    else {
+        int size = node_vec.count;
+        for (int i = 0; i < size; ++i) {
+            result.push_back(node_vec.data[i]);
+        }
+        deallocate_String_vector(&node_vec);
     }
     return result;
 }
@@ -127,7 +149,14 @@ void ZkClient::ServiceWatcher(zhandle_t *zh, int type, int state, const char *pa
 {
     ZkClient *instance = (ZkClient *)zoo_get_context(zh);
     if (type == ZOO_CHILD_EVENT) {
+        // zk设置监听watcher只能是一次性的，每次触发后需要重复设置
         std::vector<std::string> result = instance->GetChildren(path);
-        instance->m_serviceNodesMap[path] = result;
+        instance->m_childrenNodesMap[path] = result;
     }
+}
+
+// 关闭控制台日志输出（只输出错误的）
+void ZkClient::CloseLog()
+{
+    zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR);
 }

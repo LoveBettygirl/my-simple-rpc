@@ -40,6 +40,8 @@ public:
 private:
     RpcProvider(EventLoop *loop, const InetAddress &addr, const std::string& name);
 
+    ~RpcProvider();
+
     // 组合了EventLoop
     EventLoop *m_eventLoop;
 
@@ -55,6 +57,7 @@ private:
     // 存储注册成功的服务对象和其服务方法的所有信息
     std::unordered_map<std::string, ServiceInfo> m_serviceMap;
 
+    // 存储注册过的路径
     std::unordered_set<std::string> m_pathSet;
 
     ZkClient m_zkCli;
@@ -70,6 +73,9 @@ private:
 
     // 删除注册的znode节点
     void Clear();
+
+    // SIGINT信号处理函数
+    static void SigHandler(int sig);
 };
 
 #endif

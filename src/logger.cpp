@@ -9,8 +9,16 @@ Logger *Logger::GetInstance()
     return &logger;
 }
 
-Logger::Logger()
+Logger::Logger() : m_running(false)
 {
+    Start();
+}
+
+void Logger::Start()
+{
+    if (this->m_running)
+        return;
+    this->m_running = true;
     int ret = mkdir("logs/", 0777);
     if (ret == -1) {
         if (errno != EEXIST)

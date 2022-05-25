@@ -6,13 +6,27 @@
 #include <cerrno>
 #include "rpccontroller.h"
 #include "logger.h"
-#include "zookeeperutil.h"
+
+RpcChannel::RpcChannel()
+{
+    Logger::GetInstance()->Start();
+    m_zkCli.CloseLog();
+    m_zkCli.Start();
+}
+
+RpcChannel::~RpcChannel()
+{
+    m_zkCli.Stop();
+    Logger::GetInstance()->Stop();
+}
 
 // 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据序列化和网络发送
 void RpcChannel::CallMethod(const MethodDescriptor* method,
                         google::protobuf::RpcController* controller, const Message* request,
                         Message* response, Closure* done)
 {
+    if (controller)
+        controller->Reset();
     LOG_INFO("In RpcChannel: generating rpc request!");
     const ServiceDescriptor *sd = method->service();
     std::string serviceName = sd->name();
@@ -25,7 +39,10 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
         argsSize = argsStr.size();
     }
     else {
-        controller->SetFailed("In RpcChannel: serialize request error!");
+        std::string errMsg = "In RpcChannel: serialize request error!";
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         return;
     }
 
@@ -41,7 +58,10 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
         headerSize = rpcHeaderStr.size();
     }
     else {
-        controller->SetFailed("In RpcChannel: serialize rpc header error!");
+        std::string errMsg = "In RpcChannel: serialize rpc header error!";
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         return;
     }
 
@@ -65,7 +85,10 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // 使用tcp编程，完成rpc方法远程调用
     int clientfd = socket(AF_INET, SOCK_STREAM, 0);
     if (clientfd == -1) {
-        controller->SetFailed(std::string("In RpcChannel: create socket error: ") + strerror(errno));
+        std::string errMsg = std::string("In RpcChannel: create socket error: ") + strerror(errno);
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         close(clientfd);
         return;
     }
@@ -75,23 +98,28 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
 
     // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
-    ZkClient zkCli;
-    zkCli.Start();
     // /my-simple-rpc//UserServiceRpc/Login
     std::string methodPath = ROOT_PATH;
     methodPath += "/" + serviceName + "/" + methodName;
     // 127.0.0.1:8000
-    std::vector<std::string> nodes = zkCli.GetNodes(methodPath);
+    std::vector<std::string> nodes = m_zkCli.GetChildrenNodes(methodPath);
     if (nodes.empty()) {
-        controller->SetFailed(methodPath + " is not exist!");
+        std::string errMsg = methodPath + " is not exist!";
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         return;
     }
     std::string hostData = nodes[0]; // 负载均衡器的选择
     int idx = hostData.find(":");
     if (idx == -1) {
-        controller->SetFailed(methodPath + " address is invalid!");
+        std::string errMsg = methodPath + " address is invalid!";
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         return;
     }
+
     std::string ip = hostData.substr(0, idx);
     uint16_t port = atoi(hostData.substr(idx + 1, hostData.size() - idx).c_str()); 
 
@@ -102,14 +130,20 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
 
     // 连接rpc服务节点
     if (connect(clientfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        controller->SetFailed(std::string("In RpcChannel: connect error: ") + strerror(errno));
+        std::string errMsg = std::string("In RpcChannel: connect error: ") + strerror(errno);
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         close(clientfd);
         return;
     }
 
     // 发送rpc请求
     if (send(clientfd, sendRpcStr.c_str(), sendRpcStr.size(), 0) == -1) {
-        controller->SetFailed(std::string("In RpcChannel: send error: ") + strerror(errno));
+        std::string errMsg = std::string("In RpcChannel: send error: ") + strerror(errno);
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         close(clientfd);
         return;
     }
@@ -118,12 +152,18 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     char recvBuf[1024] = {0};
     int recvSize = 0;
     if ((recvSize = recv(clientfd, recvBuf, sizeof(recvBuf), 0)) == -1) {
-        controller->SetFailed(std::string("In RpcChannel: recv error: ") + strerror(errno));
+        std::string errMsg = std::string("In RpcChannel: recv error: ") + strerror(errno);
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         close(clientfd);
         return;
     }
     else if (recvSize == 0) {
-        controller->SetFailed("In RpcChannel: recv error: rpc request content error!");
+        std::string errMsg = "In RpcChannel: recv error: rpc request content error!";
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         close(clientfd);
         return;
     }
@@ -132,14 +172,14 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // std::string responseStr(recvBuf, 0, recvSize); // 出现问题，recvBuf遇到\0，后面的数据就存不下来了，导致反序列化失败
     // if (!response->ParseFromString(responseStr)) {
     if (!response->ParseFromArray(recvBuf, recvSize)) {
-        controller->SetFailed(std::string("In RpcChannel: parse error! response str: ") + recvBuf);
+        std::string errMsg = std::string("In RpcChannel: parse error! response str: ") + recvBuf;
+        LOG_ERROR("%s", errMsg.c_str());
+        if (controller)
+            controller->SetFailed(errMsg);
         close(clientfd);
         return;
     }
 
     LOG_INFO("In RpcChannel: rpc request send success!");
     close(clientfd);
-
-    // 关闭日志线程，以防客户端无法退出
-    Logger::GetInstance()->SetEnd();
 }

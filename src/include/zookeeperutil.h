@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <thread>
+#include <chrono>
 
 // 封装的zookeeper客户端类
 class ZkClient {
@@ -22,7 +24,7 @@ public:
     // 根据参数指定的znode节点路径，获取znode节点的值
     std::string GetData(const char *path);
 
-    // 获取服务对应的节点
+    // 获取路径对应的子节点
     std::vector<std::string> GetChildrenNodes(const std::string &path);
 
     // 断开zkclient与zkserver的连接
@@ -36,6 +38,9 @@ public:
 
     // 关闭控制台日志输出（只输出错误的）
     void CloseLog();
+
+    // 心跳机制
+    void SendHeartBeat();
 private:
     // zk的客户端句柄
     zhandle_t *m_zhandle;

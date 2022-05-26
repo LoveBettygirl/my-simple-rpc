@@ -116,6 +116,7 @@ std::string ZkClient::GetData(const char *path)
     return buffer;
 }
 
+// 获取路径对应的子节点
 std::vector<std::string> ZkClient::GetChildrenNodes(const std::string &path)
 {
     auto it = m_childrenNodesMap.find(path);
@@ -126,6 +127,7 @@ std::vector<std::string> ZkClient::GetChildrenNodes(const std::string &path)
     return result;
 }
 
+// 根据参数指定的znode节点路径，获取znode节点的子节点
 std::vector<std::string> ZkClient::GetChildren(const char *path)
 {
     struct String_vector node_vec;
@@ -159,4 +161,17 @@ void ZkClient::ServiceWatcher(zhandle_t *zh, int type, int state, const char *pa
 void ZkClient::CloseLog()
 {
     zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR);
+}
+
+// 心跳机制
+void ZkClient::SendHeartBeat()
+{
+    std::thread t([&]() {
+        while (true) {
+            int time = zoo_recv_timeout(m_zhandle) * 1.0 / 3; // 默认timeout 30000
+            std::this_thread::sleep_for(std::chrono::seconds(time));
+            zoo_exists(m_zhandle, ROOT_PATH, 0, nullptr);
+        }
+    });
+    t.detach();
 }

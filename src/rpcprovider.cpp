@@ -45,7 +45,8 @@ RpcProvider::RpcProvider(EventLoop *loop, const InetAddress &addr, const std::st
     // 加入根节点
     m_zkCli.Create(ROOT_PATH, nullptr, 0);
 
-    // TODO: zk心跳机制
+    // zk心跳机制
+    m_zkCli.SendHeartBeat();
 
     // SIGINT信号注册
     addsig(SIGINT, SigHandler);

@@ -6,6 +6,7 @@
 #include <cerrno>
 #include "rpccontroller.h"
 #include "logger.h"
+#include "loadbalance.h"
 
 RpcChannel::RpcChannel()
 {
@@ -98,7 +99,7 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     // uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
 
     // rpc调用方想调用service_name的method_name服务，需要查询zk上该服务所在的host信息
-    // /my-simple-rpc//UserServiceRpc/Login
+    // /my-simple-rpc/UserServiceRpc/Login
     std::string methodPath = ROOT_PATH;
     methodPath += "/" + serviceName + "/" + methodName;
     // 127.0.0.1:8000
@@ -110,7 +111,8 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
             controller->SetFailed(errMsg);
         return;
     }
-    std::string hostData = nodes[0]; // 负载均衡器的选择
+    LoadBalanceStrategy::ptr strategy = LoadBalance::queryStrategy(LoadBalanceCategory::Random);
+    std::string hostData = strategy->select(nodes, serviceName + methodName + argsStr); // 负载均衡器的选择
     int idx = hostData.find(":");
     if (idx == -1) {
         std::string errMsg = methodPath + " address is invalid!";
@@ -121,7 +123,8 @@ void RpcChannel::CallMethod(const MethodDescriptor* method,
     }
 
     std::string ip = hostData.substr(0, idx);
-    uint16_t port = atoi(hostData.substr(idx + 1, hostData.size() - idx).c_str()); 
+    uint16_t port = atoi(hostData.substr(idx + 1, hostData.size() - idx).c_str());
+    LOG_INFO("server ip: %s, server port: %d", ip.c_str(), port);
 
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;

@@ -1,9 +1,9 @@
 #include "zookeeperutil.h"
-#include "rpcapplication.h"
+#include "rpcconfig.h"
 #include "logger.h"
 
 // 全局的watcher观察器   zkserver给zkclient的通知
-void ZkClient::GlobalWatcher(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
+void ZkClient::globalWatcher(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
 {
     if (type == ZOO_SESSION_EVENT) { // 回调的消息类型是和会话相关的消息类型
         if (state == ZOO_CONNECTED_STATE) { // zkclient和zkserver连接成功
@@ -17,14 +17,14 @@ ZkClient::ZkClient() : m_zhandle(nullptr) {}
 
 ZkClient::~ZkClient()
 {
-    Stop();
+    stop();
 }
 
 // zkclient启动连接zkserver
-void ZkClient::Start()
+void ZkClient::start()
 {
-    std::string host = RpcApplication::GetInstance()->GetConfig().Load("zookeeper_ip");
-    std::string port = RpcApplication::GetInstance()->GetConfig().Load("zookeeper_port");
+    std::string host = RpcConfig::getInstance()->load("zookeeper.ip");
+    std::string port = RpcConfig::getInstance()->load("zookeeper.port");
     std::string connstr = host + ":" + port;
 
     /*
@@ -35,7 +35,8 @@ void ZkClient::Start()
     watcher回调线程 pthread_create 给客户端通知
     */
     // 这是异步的连接
-    m_zhandle = zookeeper_init(connstr.c_str(), GlobalWatcher, 30000, nullptr, nullptr, 0);
+    int timeout = std::stoi(RpcConfig::getInstance()->load("zookeeper.timeout"));
+    m_zhandle = zookeeper_init(connstr.c_str(), globalWatcher, timeout, nullptr, nullptr, 0);
     // 返回表示句柄创建成功，不代表连接成功了
     if (nullptr == m_zhandle) {
         LOG_ERROR("zookeeper_init error!");
@@ -51,7 +52,7 @@ void ZkClient::Start()
 }
 
 // 断开zkclient与zkserver的连接
-void ZkClient::Stop()
+void ZkClient::stop()
 {
     if (m_zhandle != nullptr) {
         zookeeper_close(m_zhandle); // 关闭句柄，释放资源  MySQL_Conn
@@ -62,7 +63,7 @@ void ZkClient::Stop()
 
 // 在zkserver上根据指定的path创建znode节点
 // state: 表示永久性节点还是临时性节点，0是永久性节点。永久性节点的ephemeralOwner为0
-void ZkClient::Create(const char *path, const char *data, int datalen, int state)
+void ZkClient::create(const char *path, const char *data, int datalen, int state)
 {
     char path_buffer[128];
     int bufferlen = sizeof(path_buffer);
@@ -85,7 +86,7 @@ void ZkClient::Create(const char *path, const char *data, int datalen, int state
 }
 
 // 删除节点
-void ZkClient::Delete(const char *path)
+void ZkClient::deleteNode(const char *path)
 {
     int flag;
     // 先判断path表示的znode节点是否存在，如果不存在，就不再重复删除
@@ -103,7 +104,7 @@ void ZkClient::Delete(const char *path)
 }
 
 // 根据指定的path，获取znode节点的值
-std::string ZkClient::GetData(const char *path)
+std::string ZkClient::getData(const char *path)
 {
     char buffer[64];
     int bufferlen = sizeof(buffer);
@@ -117,21 +118,21 @@ std::string ZkClient::GetData(const char *path)
 }
 
 // 获取路径对应的子节点
-std::vector<std::string> ZkClient::GetChildrenNodes(const std::string &path)
+std::vector<std::string> ZkClient::getChildrenNodes(const std::string &path)
 {
     auto it = m_childrenNodesMap.find(path);
     if (m_childrenNodesMap.find(path) != m_childrenNodesMap.end())
         return it->second;
-    std::vector<std::string> result = GetChildren(path.c_str());
+    std::vector<std::string> result = getChildren(path.c_str());
     m_childrenNodesMap[path] = result;
     return result;
 }
 
 // 根据参数指定的znode节点路径，获取znode节点的子节点
-std::vector<std::string> ZkClient::GetChildren(const char *path)
+std::vector<std::string> ZkClient::getChildren(const char *path)
 {
     struct String_vector node_vec;
-    int flag = zoo_wget_children(m_zhandle, path, ServiceWatcher, nullptr, &node_vec);
+    int flag = zoo_wget_children(m_zhandle, path, serviceWatcher, nullptr, &node_vec);
     zoo_set_context(m_zhandle, this);
     std::vector<std::string> result;
     if (flag != ZOK) {
@@ -147,24 +148,24 @@ std::vector<std::string> ZkClient::GetChildren(const char *path)
     return result;
 }
 
-void ZkClient::ServiceWatcher(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
+void ZkClient::serviceWatcher(zhandle_t *zh, int type, int state, const char *path, void *watcherCtx)
 {
     ZkClient *instance = (ZkClient *)zoo_get_context(zh);
     if (type == ZOO_CHILD_EVENT) {
         // zk设置监听watcher只能是一次性的，每次触发后需要重复设置
-        std::vector<std::string> result = instance->GetChildren(path);
+        std::vector<std::string> result = instance->getChildren(path);
         instance->m_childrenNodesMap[path] = result;
     }
 }
 
 // 关闭控制台日志输出（只输出错误的）
-void ZkClient::CloseLog()
+void ZkClient::closeLog()
 {
     zoo_set_debug_level(ZOO_LOG_LEVEL_ERROR);
 }
 
 // 心跳机制
-void ZkClient::SendHeartBeat()
+void ZkClient::sendHeartBeat()
 {
     std::thread t([&]() {
         while (true) {

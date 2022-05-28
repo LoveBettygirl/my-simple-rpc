@@ -1,6 +1,6 @@
-#include "rpcprovider.h"
+#include "rpcserver.h"
 #include <functional>
-#include "rpcapplication.h"
+#include "rpcconfig.h"
 #include "rpcheader.pb.h"
 #include "rpccontroller.h"
 #include "logger.h"
@@ -15,53 +15,53 @@ void addsig(int sig, void (*handler)(int))
     sigaction(sig, &sa, nullptr);
 }
 
-void RpcProvider::SigHandler(int sig)
+void RpcServer::sigHandler(int sig)
 {
-    RpcProvider::GetInstance()->Clear();
+    RpcServer::getInstance()->clear();
     exit(EXIT_SUCCESS);
 }
 
-RpcProvider *RpcProvider::GetInstance()
+RpcServer *RpcServer::getInstance()
 {
     static EventLoop loop;
-    static InetAddress addr(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip"), 
-        std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port")));
-    static RpcProvider rpcProvider(&loop, addr, "RpcProvider");
-    return &rpcProvider;
+    static InetAddress addr(RpcConfig::getInstance()->load("rpcserver.ip"), 
+        std::stoi(RpcConfig::getInstance()->load("rpcserver.port")));
+    static RpcServer rpcServer(&loop, addr, "RpcServer");
+    return &rpcServer;
 }
 
-RpcProvider::RpcProvider(EventLoop *loop, const InetAddress &addr, const std::string& name)
+RpcServer::RpcServer(EventLoop *loop, const InetAddress &addr, const std::string& name)
     : m_eventLoop(loop), m_server(loop, addr, name)
 {
     // 绑定连接回调和消息读写回调方法，分离了网络代码和业务代码
-    m_server.setConnectionCallback(std::bind(&RpcProvider::OnConnection, this, std::placeholders::_1));
-    m_server.setMessageCallback(std::bind(&RpcProvider::OnMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_server.setConnectionCallback(std::bind(&RpcServer::onConnection, this, std::placeholders::_1));
+    m_server.setMessageCallback(std::bind(&RpcServer::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     // 设置muduo库的线程数量
     m_server.setThreadNum(8);
 
     // 启动zkclient客户端
-    m_zkCli.Start();
+    m_zkCli.start();
     // 加入根节点
-    m_zkCli.Create(ROOT_PATH, nullptr, 0);
+    m_zkCli.create(ROOT_PATH, nullptr, 0);
 
     // zk心跳机制
-    m_zkCli.SendHeartBeat();
+    m_zkCli.sendHeartBeat();
 
     // SIGINT信号注册
-    addsig(SIGINT, SigHandler);
+    addsig(SIGINT, sigHandler);
 }
 
-RpcProvider::~RpcProvider()
+RpcServer::~RpcServer()
 {
-    Clear();
+    clear();
 }
 
 /*
 serviceName -> service描述 -> service*记录服务对象，methodName -> method方法对象
 */
 // 这里是框架提供给外部使用的，可以发布rpc方法的函数接口
-void RpcProvider::NotifyService(Service *service)
+void RpcServer::registerService(Service *service)
 {
     ServiceInfo serviceInfo;
     // 获取了服务对象的描述信息
@@ -74,13 +74,13 @@ void RpcProvider::NotifyService(Service *service)
     LOG_DEBUG("In %s:%s:%d: ", __FILE__, __FUNCTION__, __LINE__);
     LOG_DEBUG("serviceName: %s", serviceName.c_str());
 
-    std::string ip = RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip");
-    uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
+    std::string ip = RpcConfig::getInstance()->load("rpcserver.ip");
+    uint16_t port = std::stoi(RpcConfig::getInstance()->load("rpcserver.port"));
 
     // znode路径：/my-simple-rpc/UserServiceRpc/Login/127.0.0.1:8000
     std::string servicePath = ROOT_PATH;
     servicePath += "/" + serviceName;
-    m_zkCli.Create(servicePath.c_str(), nullptr, 0);
+    m_zkCli.create(servicePath.c_str(), nullptr, 0);
     for (int i = 0; i < methodCnt; ++i) {
         // 获取了服务对象指定下标的服务方法的描述（抽象描述）
         const MethodDescriptor *pmethodDesc = pserviceDesc->method(i);
@@ -91,29 +91,29 @@ void RpcProvider::NotifyService(Service *service)
 
         // 加入znode子节点
         std::string methodPath = servicePath + "/" + methodName;
-        m_zkCli.Create(methodPath.c_str(), nullptr, 0);
+        m_zkCli.create(methodPath.c_str(), nullptr, 0);
         char address[128] = {0};
         sprintf(address, "%s:%d", ip.c_str(), port);
         methodPath += "/";
         methodPath += address;
-        m_zkCli.Create(methodPath.c_str(), nullptr, 0, ZOO_EPHEMERAL);
+        m_zkCli.create(methodPath.c_str(), nullptr, 0, ZOO_EPHEMERAL);
         m_pathSet.insert(methodPath);
     }
     serviceInfo.m_service = service;
     m_serviceMap.insert({serviceName, serviceInfo});
 
-    LOG_INFO("In RpcProvider: Notify Service success!");
+    LOG_INFO("In RpcServer: Notify Service success!");
 }
 
 // 启动rpc服务节点，开始提供rpc远程网络调用服务
-void RpcProvider::Run()
+void RpcServer::start()
 {
-    std::string ip = RpcApplication::GetInstance()->GetConfig().Load("rpcserver_ip");
-    uint16_t port = std::stoi(RpcApplication::GetInstance()->GetConfig().Load("rpcserver_port"));
+    std::string ip = RpcConfig::getInstance()->load("rpcserver.ip");
+    uint16_t port = std::stoi(RpcConfig::getInstance()->load("rpcserver.port"));
     
     // rpc服务端准备启动，打印信息
-    std::cout << "RpcProvider start service at ip: " << ip << " port: " << port << std::endl;
-    LOG_INFO("RpcProvider start service at ip: %s port: %d", ip.c_str(), port);
+    std::cout << "RpcServer start service at ip: " << ip << " port: " << port << std::endl;
+    LOG_INFO("RpcServer start service at ip: %s port: %d", ip.c_str(), port);
 
     // 启动网络服务
     m_server.start();
@@ -121,7 +121,7 @@ void RpcProvider::Run()
 }
 
 // 新的socket连接回调
-void RpcProvider::OnConnection(const TcpConnectionPtr &conn)
+void RpcServer::onConnection(const TcpConnectionPtr &conn)
 {
     // rpc请求和http一样，都是短连接请求，服务端返回rpc响应之后就会主动关闭连接
     if (!conn->connected()) {
@@ -138,9 +138,9 @@ void RpcProvider::OnConnection(const TcpConnectionPtr &conn)
 */
 // 已建立连接用户的读写事件回调
 // 如果远程有一个rpc服务的调用请求，那么OnMessage方法将会响应
-void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp)
+void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp)
 {
-    LOG_INFO("In RpcProvider: get a rpc request!");
+    LOG_INFO("In RpcServer: get a rpc request!");
     // 网络上接收的远程rpc调用请求的字符流
     std::string recvBuf = buffer->retrieveAllAsString();
 
@@ -161,7 +161,7 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     }
     else {
         // 数据头反序列化失败
-        LOG_ERROR("In RpcProvider: rpcHeaderStr: %s parse error!", rpcHeaderStr.c_str());
+        LOG_ERROR("In RpcServer: rpcHeaderStr: %s parse error!", rpcHeaderStr.c_str());
         conn->shutdown();
         return;
     }
@@ -181,14 +181,14 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     // 获取service对象和method对象
     auto it = m_serviceMap.find(serviceName);
     if (it == m_serviceMap.end()) {
-        LOG_ERROR("In RpcProvider: %s is not exist!", serviceName.c_str());
+        LOG_ERROR("In RpcServer: %s is not exist!", serviceName.c_str());
         conn->shutdown();
         return;
     }
 
     auto mit = it->second.m_methodMap.find(methodName);
     if (mit == it->second.m_methodMap.end()) {
-        LOG_ERROR("In RpcProvider: %s::%s is not exist!", serviceName.c_str(), methodName.c_str());
+        LOG_ERROR("In RpcServer: %s::%s is not exist!", serviceName.c_str(), methodName.c_str());
         conn->shutdown();
         return;
     }
@@ -199,23 +199,23 @@ void RpcProvider::OnMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timest
     // 生成rpc方法调用的请求request和响应response参数
     Message *request = service->GetRequestPrototype(method).New();
     if (!request->ParseFromString(argsStr)) {
-        LOG_ERROR("In RpcProvider: request parse error! content: %s", argsStr.c_str());
+        LOG_ERROR("In RpcServer: request parse error! content: %s", argsStr.c_str());
         conn->shutdown();
         return;
     }
     Message *response = service->GetResponsePrototype(method).New();
 
     // 给下面的method方法的调用，绑定一个Closure的回调函数
-    Closure *done = google::protobuf::NewCallback<RpcProvider, const TcpConnectionPtr&, Message*>(this, &RpcProvider::SendRpcResponse, conn, response);
+    Closure *done = google::protobuf::NewCallback<RpcServer, const TcpConnectionPtr&, Message*>(this, &RpcServer::sendRpcResponse, conn, response);
 
     // 在框架上根据远端rpc请求，调用当前rpc节点上发布的方法
-    LOG_INFO("In RpcProvider: rpc request parse success, ready to call local method!");
+    LOG_INFO("In RpcServer: rpc request parse success, ready to call local method!");
     RpcController controller;
     service->CallMethod(method, &controller, request, response, done);
 }
 
 // Closure回调操作，用于序列化rpc响应和网络发送
-void RpcProvider::SendRpcResponse(const TcpConnectionPtr &conn, Message *response)
+void RpcServer::sendRpcResponse(const TcpConnectionPtr &conn, Message *response)
 {
     std::string responseStr;
     if (response->SerializeToString(&responseStr))  { // 对response进行序列化
@@ -223,21 +223,21 @@ void RpcProvider::SendRpcResponse(const TcpConnectionPtr &conn, Message *respons
         conn->send(responseStr);
     }
     else {
-        LOG_ERROR("In RpcProvider: serialize responseStr error!");
+        LOG_ERROR("In RpcServer: serialize responseStr error!");
     }
-    LOG_INFO("In RpcProvider: rpc response finish!");
-    conn->shutdown(); // 模拟http的短连接服务，由RpcProvider主动断开连接，以给其他更多rpc调用方提供服务
+    LOG_INFO("In RpcServer: rpc response finish!");
+    conn->shutdown(); // 模拟http的短连接服务，由RpcServer主动断开连接，以给其他更多rpc调用方提供服务
 }
 
 // 删除注册的znode节点，断开与zkserver连接
-void RpcProvider::Clear()
+void RpcServer::clear()
 {
-    if (!m_zkCli.GetIsConnected()) {
+    if (!m_zkCli.getIsConnected()) {
         return;
     }
     // 先删除自己注册的节点
     for (const std::string &path : m_pathSet) {
-        m_zkCli.Delete(path.c_str());
+        m_zkCli.deleteNode(path.c_str());
     }
     // 也要删除节点上层表示服务和方法的节点，以及根节点（如果它们已经没有子节点了）
     for (auto &sp : m_serviceMap) {
@@ -245,17 +245,17 @@ void RpcProvider::Clear()
         servicePath += "/" + sp.first;
         for (auto &mp : sp.second.m_methodMap) {
             std::string methodPath = servicePath + "/" + mp.first;
-            if (m_zkCli.GetChildrenNodes(methodPath).empty()) {
-                m_zkCli.Delete(methodPath.c_str());
+            if (m_zkCli.getChildrenNodes(methodPath).empty()) {
+                m_zkCli.deleteNode(methodPath.c_str());
             }
         }
-        if (m_zkCli.GetChildrenNodes(servicePath).empty()) {
-            m_zkCli.Delete(servicePath.c_str());
+        if (m_zkCli.getChildrenNodes(servicePath).empty()) {
+            m_zkCli.deleteNode(servicePath.c_str());
         }
     }
-    if (m_zkCli.GetChildrenNodes(ROOT_PATH).empty()) {
-        m_zkCli.Delete(ROOT_PATH);
+    if (m_zkCli.getChildrenNodes(ROOT_PATH).empty()) {
+        m_zkCli.deleteNode(ROOT_PATH);
     }
     // 断开与zkserver的连接
-    m_zkCli.Stop();
+    m_zkCli.stop();
 }

@@ -1,27 +1,72 @@
 #include "rpcconfig.h"
 #include <iostream>
+#include <unistd.h>
+#include <cerrno>
+
+void showArgsHelp(const char *argv)
+{
+    std::cout << "Usage: " << basename(argv) << " -i <configfile>" << std::endl;
+}
+
+void RpcConfig::init(int argc, char *argv[])
+{
+    if (argc < 2) {
+        showArgsHelp(argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    int c = 0;
+    std::string configFile;
+    while ((c = getopt(argc, argv, "i:")) != -1) {
+        switch (c) {
+            case 'i':
+                configFile = optarg;
+                break;
+            case '?':
+            case ':':
+                showArgsHelp(argv[0]);
+                exit(EXIT_FAILURE);
+            default:
+                break;
+        }
+    }
+
+    // 开始加载配置文件了
+    loadConfigFile(configFile);
+}
+
+RpcConfig *RpcConfig::getInstance()
+{
+    static RpcConfig config;
+    return &config;
+}
 
 // 负责解析加载配置文件
-void RpcConfig::LoadConfigFile(const std::string &configFile)
+void RpcConfig::loadConfigFile(const std::string &configFile)
 {
     std::ifstream fin(configFile);
     if (!fin.is_open()) {
-        std::cerr << configFile << " is not exist!" << std::endl;
+        perror("Open config file");
         exit(EXIT_FAILURE);
     }
 
     std::string temp;
     // 1. 注释 2. 正确的配置项 3. 去掉开头多余的空格
     while (std::getline(fin, temp)) {
-        Trim(temp);
+        // 忽略注释
+        int idx = temp.find('#');
+        if (idx != -1) {
+            temp = temp.substr(0, idx);
+        }
 
-        // 判断#的注释
-        if (temp[0] == '#' || temp.empty()) {
+        trim(temp);
+        
+        if (temp.empty()) {
             continue;
         }
 
         // 解析配置项
-        int idx = temp.find('=');
+        idx = temp.find('=');
         if (idx == -1) {
             // 配置项不合法
             continue;
@@ -30,9 +75,9 @@ void RpcConfig::LoadConfigFile(const std::string &configFile)
         std::string key;
         std::string value;
         key = temp.substr(0, idx);
-        Trim(key);
+        trim(key);
         value = temp.substr(idx + 1);
-        Trim(value);
+        trim(value);
         m_configMap.insert({key, value});
     }
 
@@ -40,7 +85,7 @@ void RpcConfig::LoadConfigFile(const std::string &configFile)
 }
 
 // 查询配置项信息
-std::string RpcConfig::Load(const std::string &key)
+std::string RpcConfig::load(const std::string &key)
 {
     auto it = m_configMap.find(key);
     if (it == m_configMap.end()) {
@@ -50,7 +95,7 @@ std::string RpcConfig::Load(const std::string &key)
 }
 
 // 去掉字符串前后的空格
-void RpcConfig::Trim(std::string &temp)
+void RpcConfig::trim(std::string &temp)
 {
     // 去掉字符串前面多余的空格
     int idx = temp.find_first_not_of(' ');

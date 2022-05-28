@@ -43,7 +43,6 @@ class RoundLoadBalanceStrategy : public LoadBalanceStrategy {
 public:
     std::string select(std::vector<std::string>& list, const std::string &invocation) {
         std::lock_guard<std::mutex> lock(m_mutex);
-        std::cout << "m_index: " << m_index << std::endl;
         if (m_index >= (int)list.size()) {
             m_index = 0;
         }
@@ -143,6 +142,25 @@ public:
             default:
                 return s_randomStrategy;
         }
+    }
+    static std::string strategy2Str(LoadBalanceCategory category) {
+        switch (category) {
+            case LoadBalanceCategory::Random:
+                return "Random";
+            case LoadBalanceCategory::Round:
+                return "Round";
+            case LoadBalanceCategory::ConsistentHash:
+                return "ConsistentHash";
+            default:
+                return "Random";
+        }
+    }
+    static LoadBalanceCategory str2Strategy(const std::string &str) {
+        if (str == "Round")
+            return LoadBalanceCategory::Round;
+        else if (str == "ConsistentHash")
+            return LoadBalanceCategory::ConsistentHash;
+        return LoadBalanceCategory::Random;
     }
 private:
     static LoadBalanceStrategy::ptr s_randomStrategy;

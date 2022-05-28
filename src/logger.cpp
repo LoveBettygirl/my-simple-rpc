@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 
 // 获取日志的单例
-Logger *Logger::GetInstance()
+Logger *Logger::getInstance()
 {
     static Logger logger;
     return &logger;
@@ -11,10 +11,10 @@ Logger *Logger::GetInstance()
 
 Logger::Logger() : m_running(false)
 {
-    Start();
+    start();
 }
 
-void Logger::Start()
+void Logger::start()
 {
     if (this->m_running)
         return;
@@ -26,24 +26,24 @@ void Logger::Start()
     }
 
     // 启动专门的写日志线程
-    std::thread writeLogTask(std::bind(&Logger::WriteLog, this));
+    std::thread writeLogTask(std::bind(&Logger::writeLog, this));
     // 设置分离线程（相当于守护线程）
     writeLogTask.detach();
 }
 
-void Logger::WriteLog()
+void Logger::writeLog()
 {
     while (m_running) {
-        DoLog();
+        doLog();
     }
 
     // 准备退出程序，但是还要把队列中剩余的日志写入到文件中
-    while (!m_queue.Empty()) {
-        DoLog();
+    while (!m_queue.empty()) {
+        doLog();
     }
 }
 
-void Logger::DoLog()
+void Logger::doLog()
 {
     // 获取当天的日期，然后取日志信息，写入相应的日志文件中
     time_t now = time(nullptr);
@@ -58,17 +58,17 @@ void Logger::DoLog()
         exit(EXIT_FAILURE);
     }
 
-    if (m_queue.Empty()) {
+    if (m_queue.empty()) {
         fout.close();
         return;
     }
-    std::string msg = m_queue.Pop();
+    std::string msg = m_queue.pop();
     fout << msg << std::endl;
     fout.close();
 }
 
 // 写日志，把日志信息写入LockQueue缓冲区中
-void Logger::Log(LogLevel level, const std::string &msg)
+void Logger::log(LogLevel level, const std::string &msg)
 {
     time_t now = time(nullptr);
     tm *nowtm = localtime(&now);
@@ -94,5 +94,5 @@ void Logger::Log(LogLevel level, const std::string &msg)
             break;
     }
     log += msg;
-    m_queue.Push(log);
+    m_queue.push(log);
 }

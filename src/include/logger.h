@@ -19,61 +19,61 @@ enum LogLevel {
 class Logger : private Noncopyable {
 public:
     // 获取日志的单例
-    static Logger *GetInstance();
+    static Logger *getInstance();
     
     // 写日志
-    void Log(LogLevel level, const std::string &msg);
+    void log(LogLevel level, const std::string &msg);
 
-    void Start();
+    void start();
 
-    void Stop() { this->m_running = true; }
+    void stop() { this->m_running = true; }
 private:
     LockQueue<std::string> m_queue; // 日志缓冲队列
     bool m_running; // 程序是否正在运行，设置false来结束日志线程
-    void WriteLog();
-    void DoLog();
+    void writeLog();
+    void doLog();
     Logger();
 };
 
 // 定义日志宏
 #define LOG_DEBUG(logmsgformat, ...) \
     do { \
-        Logger *logger = Logger::GetInstance(); \
+        Logger *logger = Logger::getInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger->Log(DEBUG, buf); \
+        logger->log(DEBUG, buf); \
     } while (0);
 
 #define LOG_INFO(logmsgformat, ...) \
     do { \
-        Logger *logger = Logger::GetInstance(); \
+        Logger *logger = Logger::getInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger->Log(INFO, buf); \
+        logger->log(INFO, buf); \
     } while (0);
 
 #define LOG_WARN(logmsgformat, ...) \
     do { \
-        Logger *logger = Logger::GetInstance(); \
+        Logger *logger = Logger::getInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger->Log(WARN, buf); \
+        logger->log(WARN, buf); \
     } while (0);
 
 #define LOG_ERROR(logmsgformat, ...) \
     do { \
-        Logger *logger = Logger::GetInstance(); \
+        Logger *logger = Logger::getInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger->Log(ERROR, buf); \
+        logger->log(ERROR, buf); \
     } while (0);
 
 #define LOG_FATAL(logmsgformat, ...) \
     do { \
-        Logger *logger = Logger::GetInstance(); \
+        Logger *logger = Logger::getInstance(); \
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
-        logger->Log(FATAL, buf); \
+        logger->log(FATAL, buf); \
     } while (0);
 
 #endif

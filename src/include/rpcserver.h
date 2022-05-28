@@ -1,5 +1,5 @@
-#ifndef RPCPROVIDER_H
-#define RPCPROVIDER_H
+#ifndef RPCSERVER_H
+#define RPCSERVER_H
 
 #include <google/protobuf/service.h>
 #include <string>
@@ -28,19 +28,19 @@ using Closure = google::protobuf::Closure;
 
 // 框架提供的专门负责发布rpc服务的网络对象类
 // 需要支持高并发（可能有很多人请求rpc调用），因此需要使用muduo库实现
-class RpcProvider : private Noncopyable {
+class RpcServer : private Noncopyable {
 public:
     // 这里是框架提供给外部使用的，可以发布rpc方法的函数接口
-    void NotifyService(Service *service);
+    void registerService(Service *service);
 
     // 启动rpc服务节点，开始提供rpc远程网络调用服务
-    void Run();
+    void start();
 
-    static RpcProvider *GetInstance();
+    static RpcServer *getInstance();
 private:
-    RpcProvider(EventLoop *loop, const InetAddress &addr, const std::string& name);
+    RpcServer(EventLoop *loop, const InetAddress &addr, const std::string& name);
 
-    ~RpcProvider();
+    ~RpcServer();
 
     // 组合了EventLoop
     EventLoop *m_eventLoop;
@@ -63,19 +63,19 @@ private:
     ZkClient m_zkCli;
 
     // 新的socket连接回调
-    void OnConnection(const TcpConnectionPtr &);
+    void onConnection(const TcpConnectionPtr &);
 
     // 已建立连接用户的读写事件回调
-    void OnMessage(const TcpConnectionPtr&, Buffer *, Timestamp);
+    void onMessage(const TcpConnectionPtr&, Buffer *, Timestamp);
 
     // Closure回调操作，用于序列化rpc响应和网络发送
-    void SendRpcResponse(const TcpConnectionPtr&, Message *);
+    void sendRpcResponse(const TcpConnectionPtr&, Message *);
 
     // 删除注册的znode节点
-    void Clear();
+    void clear();
 
     // SIGINT信号处理函数
-    static void SigHandler(int sig);
+    static void sigHandler(int sig);
 };
 
 #endif

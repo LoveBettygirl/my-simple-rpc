@@ -83,17 +83,17 @@ int main(int argc, char *argv[])
 
     // 调用框架的初始化操作(例如：配置、日志初始化)
     // userservice -i test.conf
-    RpcApplication::Init(argc, argv);
+    RpcConfig::getInstance()->init(argc, argv);
 
     // 把UserService、FriendService对象发布到rpc节点上
-    // privider是一个rpc网络服务对象
-    RpcProvider *provider = RpcProvider::GetInstance();
-    provider->NotifyService(new UserService()); // 发布服务
-    // provider.NotifyService(new xxxService()); // 假如想发布多个服务
+    // server是一个rpc网络服务对象
+    RpcServer *server = RpcServer::getInstance();
+    server->registerService(new UserService()); // 发布服务
+    // server->registerService(new xxxService()); // 假如想在一个进程发布多个服务
 
     // 启动一个rpc服务发布节点
-    // Run之后，进程进入阻塞状态，等待远程的rpc调用请求
-    provider->Run();
+    // start之后，进程进入阻塞状态，等待远程的rpc调用请求
+    server->start();
 
     return 0;
 }

@@ -2,57 +2,64 @@
 #include <mysimplerpc.h>
 #include "user.pb.h"
 using namespace std;
+using namespace chatservice;
+
+void LoginResponseHandler(RpcContext *context, LoginResponse *response) {
+    if (context->Failed()) {
+        cerr << context->ErrorText() << endl;
+        return;
+    }
+    if (response->result().errcode() == 0) {
+        cout << "rpc login response success: " << response->success() << endl;
+    }
+    else {
+        cerr << "rpc login response error: " << response->result().errmsg() << endl;
+    }
+}
+
+void RegisterResponseHandler(RpcContext *context, RegisterResponse *response) {
+    if (context->Failed()) {
+        cerr << context->ErrorText() << endl;
+        return;
+    }
+    if (response->result().errcode() == 0) {
+        cout << "rpc register response success: " << response->success() << endl;
+    }
+    else {
+        cerr << "rpc register response error: " << response->result().errmsg() << endl;
+    }
+}
 
 void callUserService()
 {
     // 演示调用远程发布的rpc方法Login
-    // privider是一个rpc网络服务对象
-    chatservice::UserServiceRpc_Stub stub(new RpcClient());
+    RpcClient *client = new RpcClient();
+    UserServiceRpc_Stub stub(client);
     // rpc方法的请求参数
-    chatservice::LoginRequest request;
+    LoginRequest request;
     request.set_name("zhang san");
     request.set_pwd("123456");
     // rpc方法的响应
-    chatservice::LoginResponse response;
+    LoginResponse response;
     // 发起rpc方法的调用，同步的rpc调用过程
-    RpcController controller; // 控制对象，需要controller的原因是想在rpc调用过程中，知道状态信息
-    stub.Login(&controller, &request, &response, nullptr); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
-
-    // 一次rpc调用完成，读调用的结果
-    if (controller.Failed()) {
-        cerr << controller.ErrorText() << endl;
-    }
-    else {
-        if (response.result().errcode() == 0) {
-            cout << "rpc login response success: " << response.success() << endl;
-        }
-        else {
-            cerr << "rpc login response error: " << response.result().errmsg() << endl;
-        }
-    }
+    RpcContext context; // 控制对象，需要context的原因是想在rpc调用过程中，知道状态信息
+    // 异步调用指定回调函数
+    Closure *done = NewCallback(LoginResponseHandler, &context, &response);
+    stub.Login(&context, &request, &response, done); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
+    context.waitForResult();
 
     // 演示调用远程发布的rpc方法Register
-    chatservice::RegisterRequest req;
+    RegisterRequest req;
     req.set_id(2000);
     req.set_name("li si");
     req.set_pwd("666666");
-    chatservice::RegisterResponse rsp;
+    RegisterResponse rsp;
 
-    // 以同步的方式发起rpc调用请求，等待返回结果
-    stub.Register(nullptr, &req, &rsp, nullptr); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
+    // 以同步的方式发起rpc调用请求，等待返回结果，不指定回调函数
+    stub.Register(&context, &req, &rsp, nullptr); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
 
     // 一次rpc调用完成，读调用的结果
-    if (controller.Failed()) {
-        cerr << controller.ErrorText() << endl;
-    }
-    else {
-        if (rsp.result().errcode() == 0) {
-            cout << "rpc register response success: " << rsp.success() << endl;
-        }
-        else {
-            cerr << "rpc register response error: " << rsp.result().errmsg() << endl;
-        }
-    }
+    RegisterResponseHandler(&context, &rsp);
 }
 
 int main(int argc, char *argv[])

@@ -7,8 +7,6 @@
 #include <cstring>
 #include "noncopyable.h"
 
-static const char *ROOT_PATH = "/my-simple-rpc";
-
 // 框架读取配置文件类
 class RpcConfig : private Noncopyable {
 public:

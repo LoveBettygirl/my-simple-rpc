@@ -25,6 +25,7 @@ using ServiceDescriptor = google::protobuf::ServiceDescriptor;
 using MethodDescriptor = google::protobuf::MethodDescriptor;
 using Message = google::protobuf::Message;
 using Closure = google::protobuf::Closure;
+using google::protobuf::NewCallback;
 
 // 框架提供的专门负责发布rpc服务的网络对象类
 // 需要支持高并发（可能有很多人请求rpc调用），因此需要使用muduo库实现

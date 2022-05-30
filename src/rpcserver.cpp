@@ -2,7 +2,7 @@
 #include <functional>
 #include "rpcconfig.h"
 #include "rpcheader.pb.h"
-#include "rpccontroller.h"
+#include "rpccontext.h"
 #include "logger.h"
 #include <signal.h>
 
@@ -102,7 +102,7 @@ void RpcServer::registerService(Service *service)
     serviceInfo.m_service = service;
     m_serviceMap.insert({serviceName, serviceInfo});
 
-    LOG_INFO("In RpcServer: Notify Service success!");
+    LOG_INFO("In RpcServer: Register Service success!");
 }
 
 // 启动rpc服务节点，开始提供rpc远程网络调用服务
@@ -205,12 +205,15 @@ void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestam
     }
     Message *response = service->GetResponsePrototype(method).New();
 
+    // 测试：用sleep模拟服务端处理不过来的场景
+    // std::this_thread::sleep_for(std::chrono::seconds(5));
+
     // 给下面的method方法的调用，绑定一个Closure的回调函数
-    Closure *done = google::protobuf::NewCallback<RpcServer, const TcpConnectionPtr&, Message*>(this, &RpcServer::sendRpcResponse, conn, response);
+    Closure *done = NewCallback<RpcServer, const TcpConnectionPtr&, Message*>(this, &RpcServer::sendRpcResponse, conn, response);
 
     // 在框架上根据远端rpc请求，调用当前rpc节点上发布的方法
     LOG_INFO("In RpcServer: rpc request parse success, ready to call local method!");
-    RpcController controller;
+    RpcContext controller;
     service->CallMethod(method, &controller, request, response, done);
 }
 

@@ -2,37 +2,41 @@
 #include <mysimplerpc.h>
 #include "friend.pb.h"
 using namespace std;
+using namespace chatservice;
+
+void GetFriendsListResponseHandler(RpcContext *context, GetFriendsListResponse *response) {
+    if (context->Failed()) {
+        cerr << context->ErrorText() << endl;
+        return;
+    }
+    if (response->result().errcode() == 0) {
+        cout << "rpc GetFriendsList response success!" << endl;
+        int size = response->friends_size();
+        for (int i = 0; i < size; ++i) {
+            cout << "index: " << (i + 1) << " name: " << response->friends(i) << endl;
+        }
+    }
+    else {
+        cerr << "rpc GetFriendsList response error: " << response->result().errmsg() << endl;
+    }
+}
 
 void callFriendService()
 {
     // 演示调用远程发布的rpc方法GetFriendsList
-    // privider是一个rpc网络服务对象
-    chatservice::FriendServiceRpc_Stub stub(new RpcClient());
+    RpcClient *client = new RpcClient(); // stub的析构函数会释放掉
+    FriendServiceRpc_Stub stub(client);
     // rpc方法的请求参数
-    chatservice::GetFriendsListRequest request;
+    GetFriendsListRequest request;
     request.set_userid(1000);
     // rpc方法的响应
-    chatservice::GetFriendsListResponse response;
+    GetFriendsListResponse response;
     // 发起rpc方法的调用，同步的rpc调用过程
-    RpcController controller; // 控制对象，需要controller的原因是想在rpc调用过程中，知道状态信息
-    stub.GetFriendsList(&controller, &request, &response, nullptr); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
-
-    // 一次rpc调用完成，读调用的结果
-    if (controller.Failed()) {
-        cerr << controller.ErrorText() << endl;
-    }
-    else {
-        if (response.result().errcode() == 0) {
-            cout << "rpc GetFriendsList response success!" << endl;
-            int size = response.friends_size();
-            for (int i = 0; i < size; ++i) {
-                cout << "index: " << (i + 1) << " name: " << response.friends(i) << endl;
-            }
-        }
-        else {
-            cerr << "rpc GetFriendsList response error: " << response.result().errmsg() << endl;
-        }
-    }
+    RpcContext context; // 控制对象，需要context的原因是想在rpc调用过程中，知道状态信息
+    // 异步调用指定回调函数
+    Closure *done = NewCallback(GetFriendsListResponseHandler, &context, &response);
+    stub.GetFriendsList(&context, &request, &response, done); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
+    context.waitForResult();
 }
 
 int main(int argc, char *argv[])

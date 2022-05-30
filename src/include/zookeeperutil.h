@@ -9,6 +9,8 @@
 #include <thread>
 #include <chrono>
 
+static const char *ROOT_PATH = "/my-simple-rpc";
+
 // 封装的zookeeper客户端类
 class ZkClient {
 public:

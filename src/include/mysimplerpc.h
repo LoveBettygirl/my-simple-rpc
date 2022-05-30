@@ -3,7 +3,7 @@
 
 #include "rpcconfig.h"
 #include "rpcclient.h"
-#include "rpccontroller.h"
+#include "rpccontext.h"
 #include "rpcserver.h"
 #include "logger.h"
 

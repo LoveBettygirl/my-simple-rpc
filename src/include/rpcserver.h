@@ -55,6 +55,24 @@ private:
         std::unordered_map<std::string, const MethodDescriptor*> m_methodMap; // 保存服务方法
     };
 
+    class RpcServerContext : public google::protobuf::RpcController {
+    private:
+        uint64_t requestId;
+        const TcpConnectionPtr &conn;
+    public:
+        void setRequestId(uint32_t id) { this->requestId = id; }
+        uint64_t getRequestId() const { return requestId; }
+        const TcpConnectionPtr &getConn() const { return conn; }
+        RpcServerContext(const TcpConnectionPtr &conn) : conn(conn) {}
+        void Reset() {}
+        bool Failed() const { return false; }
+        std::string ErrorText() const { return ""; }
+        void SetFailed(const std::string &reason) {}
+        void StartCancel() {}
+        bool IsCanceled() const { return false; }
+        void NotifyOnCancel(Closure *callback) {}
+    };
+
     // 存储注册成功的服务对象和其服务方法的所有信息
     std::unordered_map<std::string, ServiceInfo> m_serviceMap;
 
@@ -63,14 +81,18 @@ private:
 
     ZkClient m_zkCli;
 
+    static constexpr uint32_t MAGIC_NUM = 0xabcddcba;
+
     // 新的socket连接回调
     void onConnection(const TcpConnectionPtr &);
+
+    bool processRequest(const TcpConnectionPtr &conn, const std::string &recvBuf);
 
     // 已建立连接用户的读写事件回调
     void onMessage(const TcpConnectionPtr&, Buffer *, Timestamp);
 
     // Closure回调操作，用于序列化rpc响应和网络发送
-    void sendRpcResponse(const TcpConnectionPtr&, Message *);
+    void sendRpcResponse(RpcServerContext *context, Message *response);
 
     // 删除注册的znode节点
     void clear();

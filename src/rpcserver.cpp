@@ -6,6 +6,8 @@
 #include "logger.h"
 #include <signal.h>
 
+constexpr uint32_t RpcServer::MAGIC_NUM;
+
 void addsig(int sig, void (*handler)(int))
 {
     struct sigaction sa; // 这里必须加struct，要不然和函数名字冲突了
@@ -46,7 +48,7 @@ RpcServer::RpcServer(EventLoop *loop, const InetAddress &addr, const std::string
     m_zkCli.create(ROOT_PATH, nullptr, 0);
 
     // zk心跳机制
-    m_zkCli.sendHeartBeat();
+    // m_zkCli.sendHeartBeat();
 
     // SIGINT信号注册
     addsig(SIGINT, sigHandler);
@@ -130,26 +132,29 @@ void RpcServer::onConnection(const TcpConnectionPtr &conn)
     }
 }
 
-/*
-在框架内部，RpcPrivider和RpcConsumer要协商好通信用的protobuf数据类型
-协议头部应该包含这三部分：serviceName methodName args
-定义proto的message类型，进行数据的序列化和反序列化
-为了防止TCP粘包问题，还需要记录头部的长度，参数的长度
-*/
-// 已建立连接用户的读写事件回调
-// 如果远程有一个rpc服务的调用请求，那么OnMessage方法将会响应
-void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp)
+// recvBuf: 网络上接收的远程rpc调用请求的字符流
+bool RpcServer::processRequest(const TcpConnectionPtr &conn, const std::string &recvBuf)
 {
-    LOG_INFO("In RpcServer: get a rpc request!");
-    // 网络上接收的远程rpc调用请求的字符流
-    std::string recvBuf = buffer->retrieveAllAsString();
+    uint32_t msgType = 0;
+    int progress = sizeof(MAGIC_NUM) + sizeof(msgType); // 表示数据包处理的进度
 
-    // 从字符流中读取前4个字节的内容
-    uint32_t headerSize = 0;
-    recvBuf.copy((char*)&headerSize, 4, 0);
+    uint32_t contentSize = 0;
+    recvBuf.copy((char*)&contentSize, sizeof(contentSize), progress);
+    progress += sizeof(contentSize);
+
+    uint64_t requestId = 0;
+    recvBuf.copy((char*)&requestId, sizeof(requestId), progress);
+    LOG_INFO("In RpcServer: get a rpc request, request id: %lx!", requestId);
+    progress += sizeof(requestId);
+
+    uint32_t rpcHeaderStrSize = 0;
+    recvBuf.copy((char*)&rpcHeaderStrSize, sizeof(rpcHeaderStrSize), progress);
+    progress += sizeof(rpcHeaderStrSize);
+
+    uint32_t restContentSize = contentSize - sizeof(requestId);
 
     // 根据headerSize读取数据头的原始字符流，反序列化数据，得到rpc请求的详细信息
-    std::string rpcHeaderStr = recvBuf.substr(4, headerSize);
+    std::string rpcHeaderStr = recvBuf.substr(progress, rpcHeaderStrSize);
     mysimplerpc::RpcHeader rpcHeader;
     std::string serviceName, methodName;
     uint32_t argsSize;
@@ -162,16 +167,19 @@ void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestam
     else {
         // 数据头反序列化失败
         LOG_ERROR("In RpcServer: rpcHeaderStr: %s parse error!", rpcHeaderStr.c_str());
-        conn->shutdown();
-        return;
+        return false;
     }
+    progress += rpcHeaderStrSize;
 
     // 获取rpc方法参数的字符流数据
-    std::string argsStr = recvBuf.substr(4 + headerSize, argsSize);
+    std::string argsStr = recvBuf.substr(progress, argsSize);
 
     // 打印调试信息
     LOG_DEBUG("In %s:%s:%d: ", __FILE__, __FUNCTION__, __LINE__);
-    LOG_DEBUG("headerSize: %d", headerSize);
+    LOG_DEBUG("msgType: %d", msgType);
+    LOG_DEBUG("contentSize: %d", contentSize);
+    LOG_DEBUG("requestId: %lx", requestId);
+    LOG_DEBUG("rpcHeaderStrSize: %d", rpcHeaderStrSize);
     LOG_DEBUG("rpcHeaderStr: %s", rpcHeaderStr.c_str());
     LOG_DEBUG("serviceName: %s", serviceName.c_str());
     LOG_DEBUG("methodName: %s", methodName.c_str());
@@ -182,15 +190,13 @@ void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestam
     auto it = m_serviceMap.find(serviceName);
     if (it == m_serviceMap.end()) {
         LOG_ERROR("In RpcServer: %s is not exist!", serviceName.c_str());
-        conn->shutdown();
-        return;
+        return false;
     }
 
     auto mit = it->second.m_methodMap.find(methodName);
     if (mit == it->second.m_methodMap.end()) {
         LOG_ERROR("In RpcServer: %s::%s is not exist!", serviceName.c_str(), methodName.c_str());
-        conn->shutdown();
-        return;
+        return false;
     }
 
     Service *service = it->second.m_service; // 获取service对象
@@ -200,8 +206,7 @@ void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestam
     Message *request = service->GetRequestPrototype(method).New();
     if (!request->ParseFromString(argsStr)) {
         LOG_ERROR("In RpcServer: request parse error! content: %s", argsStr.c_str());
-        conn->shutdown();
-        return;
+        return false;
     }
     Message *response = service->GetResponsePrototype(method).New();
 
@@ -209,21 +214,82 @@ void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestam
     // std::this_thread::sleep_for(std::chrono::seconds(5));
 
     // 给下面的method方法的调用，绑定一个Closure的回调函数
-    Closure *done = NewCallback<RpcServer, const TcpConnectionPtr&, Message*>(this, &RpcServer::sendRpcResponse, conn, response);
+    RpcServerContext context(conn);
+    context.setRequestId(requestId);
+    Closure *done = NewCallback(this, &RpcServer::sendRpcResponse, &context, response);
 
     // 在框架上根据远端rpc请求，调用当前rpc节点上发布的方法
     LOG_INFO("In RpcServer: rpc request parse success, ready to call local method!");
-    RpcContext controller;
-    service->CallMethod(method, &controller, request, response, done);
+    service->CallMethod(method, &context, request, response, done);
+    return true;
 }
 
-// Closure回调操作，用于序列化rpc响应和网络发送
-void RpcServer::sendRpcResponse(const TcpConnectionPtr &conn, Message *response)
+/*
+在框架内部，RpcPrivider和RpcConsumer要协商好通信用的protobuf数据类型
+协议头部应该包含这三部分：serviceName methodName args
+定义proto的message类型，进行数据的序列化和反序列化
+为了防止TCP粘包问题，还需要记录头部的长度，参数的长度
+*/
+// 已建立连接用户的读写事件回调
+// 如果远程有一个rpc服务的调用请求，那么OnMessage方法将会响应
+void RpcServer::onMessage(const TcpConnectionPtr &conn, Buffer *buffer, Timestamp)
 {
+    // 要解决粘包问题
+    uint32_t contentSize = 0, msgType = 0;
+    if (buffer->readableBytes() < sizeof(MAGIC_NUM))
+        return;
+
+    uint32_t magic = 0;
+    memcpy((char*)&magic, buffer->peek(), sizeof(MAGIC_NUM));
+    if (magic != MAGIC_NUM) {
+        LOG_ERROR("In RpcServer: %s!", "receive illegal packet");
+        conn->shutdown();
+        return;
+    }
+
+    if (buffer->readableBytes() < sizeof(MAGIC_NUM) + sizeof(msgType) + sizeof(contentSize))
+        return;
+
+    memcpy((char*)&contentSize, buffer->peek() + sizeof(MAGIC_NUM) + sizeof(msgType), sizeof(contentSize));
+
+    int allSize = sizeof(MAGIC_NUM) + sizeof(msgType) + sizeof(contentSize) + contentSize;
+    if (buffer->readableBytes() < allSize)
+        return;
+
+    memcpy((char*)&msgType, buffer->peek() + sizeof(MAGIC_NUM), sizeof(msgType));
+    if (msgType != 0) {
+        LOG_ERROR("In RpcServer: %s!", "not request package");
+        conn->shutdown();
+        return;
+    }
+
+    // 已经可以接收一个包了
+    std::string recvBuf;
+    recvBuf.append(buffer->peek(), allSize);
+    buffer->retrieve(allSize);
+
+    if (!processRequest(conn, recvBuf)) {
+        conn->shutdown();
+    }
+}
+
+
+// Closure回调操作，用于序列化rpc响应和网络发送
+void RpcServer::sendRpcResponse(RpcServerContext *context, Message *response)
+{
+    const TcpConnectionPtr &conn = context->getConn();
     std::string responseStr;
     if (response->SerializeToString(&responseStr))  { // 对response进行序列化
         // 序列化成功后，通过网络把rpc方法执行的结果发送回rpc调用方
-        conn->send(responseStr);
+        uint64_t requestId = context->getRequestId();
+        uint32_t msgType = 1, contentSize = sizeof(requestId) + responseStr.size();
+        std::string allStr;
+        allStr.append((char*)&MAGIC_NUM, sizeof(MAGIC_NUM));
+        allStr.append((char*)&msgType, sizeof(msgType));
+        allStr.append((char*)&contentSize, sizeof(contentSize));
+        allStr.append((char*)&requestId, sizeof(requestId));
+        allStr.append(responseStr);
+        conn->send(allStr);
     }
     else {
         LOG_ERROR("In RpcServer: serialize responseStr error!");

@@ -119,6 +119,26 @@ void RpcClient::syncCall(const std::string &ip, uint16_t port, const std::string
         return;
     }
 
+    struct timeval netTimeout = {15, 0}; // 超时时间15s
+    // 发送时限
+    if (setsockopt(clientfd, SOL_SOCKET, SO_SNDTIMEO, &netTimeout, sizeof(netTimeout)) == -1) {
+        std::string errMsg = std::string("In RpcClient: set send timeout error: ") + strerror(errno);
+        LOG_ERROR("%s", errMsg.c_str());
+        if (context)
+            context->SetFailed(errMsg);
+        close(clientfd);
+        return;
+    }
+    // 接收时限
+    if (setsockopt(clientfd, SOL_SOCKET, SO_RCVTIMEO, &netTimeout, sizeof(netTimeout)) == -1) {
+        std::string errMsg = std::string("In RpcClient: set recv timeout error: ") + strerror(errno);
+        LOG_ERROR("%s", errMsg.c_str());
+        if (context)
+            context->SetFailed(errMsg);
+        close(clientfd);
+        return;
+    }
+
     // 连接rpc服务节点
     if (connect(clientfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         std::string errMsg = std::string("In RpcClient: connect error: ") + strerror(errno);
@@ -317,22 +337,8 @@ void RpcClient::CallMethod(const MethodDescriptor* method,
         return;
     }
 
-    // 服务发现
-    auto discovered = discoverService(context, serviceName, methodName, argsStr);
-    if (discovered.first.empty()) { // 表明服务发现出错
-        if (done)
-            done->Run();
-        if (context)
-            context->complete();
-        return;
-    }
-
-    std::string ip = discovered.first;
-    uint16_t port = discovered.second;
-    LOG_INFO("Discovered server ip: %s, server port: %d", ip.c_str(), port);
-
     // 组织待发送的rpc请求字符串
-    requestId = IDGenerator::getInstance()->getUID(ip + ":" + std::to_string(port) + serviceName + methodName);
+    requestId = IDGenerator::getInstance()->getUID(serviceName + methodName + argsStr);
     std::string sendRpcStr;
     sendRpcStr.append((char*)&MAGIC_NUM, sizeof(MAGIC_NUM));
     sendRpcStr.append((char*)&msgType, sizeof(msgType));
@@ -355,6 +361,20 @@ void RpcClient::CallMethod(const MethodDescriptor* method,
     LOG_DEBUG("argsStr: %s", argsStr.c_str());
 
     LOG_INFO("In RpcClient: rpc request generated, ready to send!");
+
+    // 服务发现
+    auto discovered = discoverService(context, serviceName, methodName, argsStr);
+    if (discovered.first.empty()) { // 表明服务发现出错
+        if (done)
+            done->Run();
+        if (context)
+            context->complete();
+        return;
+    }
+
+    std::string ip = discovered.first;
+    uint16_t port = discovered.second;
+    LOG_INFO("Discovered server ip: %s, server port: %d", ip.c_str(), port);
 
     if (done == nullptr) {
         syncCall(ip, port, sendRpcStr, response, context);

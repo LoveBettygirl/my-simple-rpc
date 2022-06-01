@@ -22,13 +22,13 @@ void callEchoService()
 {
     RpcClient *client = new RpcClient();
     EchoServiceRpc_Stub stub(client);
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 1000; i++) {
         EchoRequest request;
         EchoResponse response;
         RpcContext context;
         request.set_text("Hello, " + to_string(i));
         stub.Echo(&context, &request, &response, nullptr);
-        // EchoResponseHandler(&context, &response);
+        EchoResponseHandler(&context, &response);
     }
 }
 

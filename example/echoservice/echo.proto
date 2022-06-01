@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package echoservice;
+
+// protoc echo.proto --cpp_out=./
+
+option cc_generic_services = true;
+
+message ResultCode {
+    int32 errcode = 1;
+    bytes errmsg = 2;
+}
+
+message EchoRequest {
+    bytes text = 1;
+}
+
+message EchoResponse {
+    ResultCode result = 1;
+    bytes text = 2;
+}
+
+service EchoServiceRpc {
+    // 注意，这里定义的方法名和本地服务的方法名不一定要一致，但是最好一致
+    rpc Echo(EchoRequest) returns(EchoResponse);
+}

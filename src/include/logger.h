@@ -42,7 +42,7 @@ private:
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
         logger->log(DEBUG, buf); \
-    } while (0);
+    } while (0)
 
 #define LOG_INFO(logmsgformat, ...) \
     do { \
@@ -50,7 +50,7 @@ private:
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
         logger->log(INFO, buf); \
-    } while (0);
+    } while (0)
 
 #define LOG_WARN(logmsgformat, ...) \
     do { \
@@ -58,7 +58,7 @@ private:
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
         logger->log(WARN, buf); \
-    } while (0);
+    } while (0)
 
 #define LOG_ERROR(logmsgformat, ...) \
     do { \
@@ -66,7 +66,7 @@ private:
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
         logger->log(ERROR, buf); \
-    } while (0);
+    } while (0)
 
 #define LOG_FATAL(logmsgformat, ...) \
     do { \
@@ -74,6 +74,6 @@ private:
         char buf[1024] = {0}; \
         snprintf(buf, sizeof(buf), logmsgformat, ##__VA_ARGS__); \
         logger->log(FATAL, buf); \
-    } while (0);
+    } while (0)
 
 #endif

@@ -46,7 +46,7 @@ void callUserService()
     // 异步调用指定回调函数
     Closure *done = NewCallback(LoginResponseHandler, &context, &response);
     stub.Login(&context, &request, &response, done); // RpcClient->RpcClient::CallMethod 集中来做所有rpc方法调用的参数序列化和网络发送
-    context.waitForResult();
+    context.waitForResult(); // 线程同步：等待结果
 
     // 演示调用远程发布的rpc方法Register
     RegisterRequest req;

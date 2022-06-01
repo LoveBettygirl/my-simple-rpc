@@ -1,0 +1,8 @@
+find_package(Protobuf REQUIRED)
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS friend.proto)
+add_executable(friendservice friendservice.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(callfriendservice callfriendservice.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(friendservice mysimplerpc ${Protobuf_LIBRARIES})
+target_link_libraries(callfriendservice mysimplerpc ${Protobuf_LIBRARIES})

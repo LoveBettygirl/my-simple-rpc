@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package multipleservice;
+
+// protoc calculator.proto --cpp_out=./
+
+option cc_generic_services = true;
+
+message CalculateResultCode {
+    int32 errcode = 1;
+    bytes errmsg = 2;
+}
+
+message CalculateRequest {
+    int32 a = 1;
+    int32 b = 2;
+}
+
+message CalculateResponse {
+    CalculateResultCode result = 1;
+    int32 c = 2;
+}
+
+service CalculatorServiceRpc {
+    // 注意，这里定义的方法名和本地服务的方法名不一定要一致，但是最好一致
+    rpc Add(CalculateRequest) returns(CalculateResponse);
+    rpc Sub(CalculateRequest) returns(CalculateResponse);
+    rpc Mul(CalculateRequest) returns(CalculateResponse);
+    rpc Div(CalculateRequest) returns(CalculateResponse);
+}

@@ -1,2 +1,4 @@
-add_subdirectory(callee)
-add_subdirectory(caller)
+add_subdirectory(userservice)
+add_subdirectory(friendservice)
+add_subdirectory(echoservice)
+add_subdirectory(multipleservice)

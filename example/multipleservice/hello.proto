@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package multipleservice;
+
+// protoc hello.proto --cpp_out=./
+
+option cc_generic_services = true;
+
+message HelloResultCode {
+    int32 errcode = 1;
+    bytes errmsg = 2;
+}
+
+message HelloRequest {
+    bytes name = 1;
+}
+
+message HelloResponse {
+    HelloResultCode result = 1;
+    bytes message = 2;
+}
+
+service HelloServiceRpc {
+    // 注意，这里定义的方法名和本地服务的方法名不一定要一致，但是最好一致
+    rpc Hello(HelloRequest) returns(HelloResponse);
+}

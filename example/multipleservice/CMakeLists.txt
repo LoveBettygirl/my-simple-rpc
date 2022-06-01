@@ -1,0 +1,8 @@
+find_package(Protobuf REQUIRED)
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS hello.proto calculator.proto)
+add_executable(multipleservice multipleservice.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(callmultipleservice callmultipleservice.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(multipleservice mysimplerpc ${Protobuf_LIBRARIES})
+target_link_libraries(callmultipleservice mysimplerpc ${Protobuf_LIBRARIES})

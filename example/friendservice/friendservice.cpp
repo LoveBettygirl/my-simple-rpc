@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
     // server是一个rpc网络服务对象
     RpcServer *server = RpcServer::getInstance();
     server->registerService(new FriendService()); // 发布服务
-    // server->registerService(new xxxService()); // 假如想在一个进程发布多个服务
 
     // 启动一个rpc服务发布节点
     // Run之后，进程进入阻塞状态，等待远程的rpc调用请求

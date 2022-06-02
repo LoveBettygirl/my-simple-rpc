@@ -8,3 +8,4 @@ cd `pwd`/build &&
 	make
 cd ..
 cp -r `pwd`/src/include `pwd`/lib
+mv `pwd`/lib/include `pwd`/lib/mysimplerpc
